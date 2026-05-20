@@ -62,6 +62,7 @@ class AppAuditRegressionTests(unittest.TestCase):
 
     def test_no_inline_event_handlers_remain(self):
         self.assertNotIn("onclick=", self.html)
+        self.assertNotIn("window.removeTrack", self.html)
         self.assertIn("addEventListener('click'", self.html)
 
     def test_log_file_picker_is_explicit_user_action(self):
@@ -88,6 +89,12 @@ class AppAuditRegressionTests(unittest.TestCase):
         self.assertIn("currentLogDownloadUrl", self.html)
         self.assertIn("URL.revokeObjectURL(currentLogDownloadUrl)", self.html)
 
+    def test_outdoor_mode_is_available(self):
+        self.assertIn('id="outdoorModeToggle"', self.html)
+        self.assertIn("body.outdoor-mode", self.html)
+        self.assertIn("function toggleOutdoorMode()", self.html)
+        self.assertIn("OUTDOOR_MODE_STORAGE_KEY", self.html)
+
     def test_ambiguous_sensor_lookup_is_handled(self):
         self.assertIn("function findSensor(sensorNumber)", self.html)
         self.assertIn("status: 'ambiguous'", self.html)
@@ -113,6 +120,7 @@ class BoxSortingFeatureTests(unittest.TestCase):
     def test_box_sorting_parses_sorts_and_deduplicates_numbers(self):
         self.assertIn("function parseBoxSensorNumbers(text)", self.html)
         self.assertIn("uniqueNumbers", self.html)
+        self.assertIn("duplicateNumbers", self.html)
         self.assertIn("Number(left) - Number(right)", self.html)
         self.assertIn("duplicateCount", self.html)
         self.assertIn("invalidCount", self.html)
@@ -120,13 +128,35 @@ class BoxSortingFeatureTests(unittest.TestCase):
     def test_box_position_and_export_are_supported(self):
         self.assertIn("function getBoxPositionByIndex(index)", self.html)
         self.assertIn("function findBoxPlacement(sensorNumber)", self.html)
-        self.assertIn("function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date())", self.html)
+        self.assertIn("function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [])", self.html)
         self.assertIn("Source file: ${sourceName}", self.html)
         self.assertIn("Exported at: ${exportTimestamp}", self.html)
         self.assertIn("Box capacity: ${BOX_SIZE} sensors", self.html)
         self.assertIn("function getBoxLayoutFileName(sourceFileName)", self.html)
         self.assertIn("BOX_LAYOUT_SUFFIX = 'box_layout'", self.html)
         self.assertIn("link.download = getBoxLayoutFileName(boxSourceFileName)", self.html)
+
+    def test_printable_box_labels_are_supported(self):
+        self.assertIn('id="exportBoxLabels"', self.html)
+        self.assertIn("function formatBoxLabels(numbers", self.html)
+        self.assertIn("function exportBoxLabels()", self.html)
+        self.assertIn("BOX_LABELS_SUFFIX = 'box_labels'", self.html)
+
+    def test_operator_notes_are_in_exported_logs(self):
+        self.assertIn('id="operatorNotes"', self.html)
+        self.assertIn("function buildSessionLogText()", self.html)
+        self.assertIn("Operator notes:", self.html)
+
+    def test_track_color_import_export_is_supported(self):
+        self.assertIn('id="exportTrackColors"', self.html)
+        self.assertIn('id="importTrackColors"', self.html)
+        self.assertIn("function exportTrackColors()", self.html)
+        self.assertIn("function parseTrackColorImport(text)", self.html)
+
+    def test_mapping_import_reports_duplicates(self):
+        self.assertIn("function parseSensorFile(text)", self.html)
+        self.assertIn("duplicateNumbers.push(num)", self.html)
+        self.assertIn("Duplicate sensors ignored", self.html)
 
 
 class DocumentationTests(unittest.TestCase):
@@ -164,6 +194,16 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Exported at:", readme)
         self.assertIn("_box_layout.txt", readme)
         self.assertIn("sensor_numbers_20260520_073634_box_layout.txt", readme)
+        self.assertIn("sensor_numbers_20260520_073634_box_labels.txt", readme)
+
+    def test_readme_documents_field_workflow_enhancements(self):
+        readme = read_text(README)
+
+        self.assertIn("Outdoor mode", readme)
+        self.assertIn("operator notes", readme)
+        self.assertIn("Import track colors", readme)
+        self.assertIn("Export track colors", readme)
+        self.assertIn("Duplicate sensor numbers", readme)
 
     def test_project_text_files_are_ascii_only(self):
         for path in [APP_HTML, README, AUDIT, AGENTS, IMPROVEMENTS, GENERATOR, Path(__file__)]:

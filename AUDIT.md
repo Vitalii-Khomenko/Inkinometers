@@ -188,3 +188,17 @@ Capabilities:
 - Include the source file name and export timestamp inside the exported layout.
 
 Test coverage was extended in `tests/test_project.py` for the new tab, constants, parser/sorter behavior, placement logic, source-based export naming, export metadata, export support, and README documentation.
+
+### Field Workflow Enhancements
+
+Status: Added after audit closure.
+
+Capabilities:
+
+- Dark/high-contrast outdoor mode for bright field conditions.
+- Operator notes included in downloaded session logs.
+- Track color settings import/export.
+- Printable box label TXT export.
+- Duplicate sensor reporting for imported mapping files and box sorting lists.
+
+Test coverage was extended in `tests/test_project.py` for these controls, exports, and documentation updates.

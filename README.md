@@ -34,6 +34,11 @@ All UI text, browser messages, documentation, code comments, script output, comm
 - Sort chaotic sensor number lists into physical boxes.
 - Search a sorted sensor list to find the required box, row, and position.
 - Export a formatted box layout using the imported file name plus `_box_layout.txt`.
+- Export printable box labels using the imported file name plus `_box_labels.txt`.
+- Use dark/high-contrast outdoor mode for bright field conditions.
+- Add operator notes to exported session logs.
+- Import and export track color settings.
+- Detect and report duplicate sensor numbers during TXT imports.
 
 ## Files
 
@@ -77,6 +82,8 @@ The uploaded file must include the default track names `U1`, `U2`, `N1`, and `N2
 
 No server is required. All data is processed locally in the browser.
 
+Use **Outdoor mode** when bright field conditions require stronger contrast.
+
 ## Box Sorting
 
 Use the **Box Sorting** tab when you have a chaotic TXT file with loose sensor numbers and need to place them into physical boxes.
@@ -89,6 +96,7 @@ Workflow:
 4. Each box is arranged as 3 rows x 8 positions.
 5. Enter a sensor number to see its box, row, and position.
 6. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
+7. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
 
 Example placement:
 
@@ -115,11 +123,18 @@ Row 3:   103349 103509 103519 103810 104001 104002 104003 104004
 ```
 
 Invalid values and duplicate sensor numbers are ignored and counted in the status message.
+Duplicate sensor numbers are listed in the status message and in the exported box layout metadata.
 
 If the imported file is named `sensor_numbers_20260520_073634.txt`, the export file is named:
 
 ```txt
 sensor_numbers_20260520_073634_box_layout.txt
+```
+
+The printable label export uses:
+
+```txt
+sensor_numbers_20260520_073634_box_labels.txt
 ```
 
 ## Track Colors
@@ -139,6 +154,8 @@ Default tracks cannot be removed, but their colors can be updated. Custom tracks
 
 Track color settings are stored in browser `localStorage`.
 
+Use **Export track colors** to download a JSON backup, and use **Import track colors** to restore or move settings to another device.
+
 ## Logging
 
 Each search creates one log line:
@@ -149,6 +166,8 @@ Each search creates one log line:
 ```
 
 Chrome and Edge can append searches directly to a selected log file when file access is allowed. Other browsers keep the log in memory for the current session and provide a download link.
+
+Optional operator notes are included in the downloaded session log.
 
 ## Generate Test Sensor Numbers
 

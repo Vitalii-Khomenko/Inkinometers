@@ -2,5 +2,7 @@ __pycache__/
 *.py[cod]
 sensor_numbers_*.txt
 *_box_layout.txt
+*_box_labels.txt
 sensor_box_layout.txt
+track_colors.json
 Inklinometers-test.txt

@@ -8,6 +8,14 @@ The target use case is smartphone operation without installation, a server, or b
 
 ## Priority Improvements
 
+## Completed Improvements
+
+- Added a dark/high-contrast outdoor mode.
+- Added operator notes to exported session log files.
+- Added optional import/export for track color settings.
+- Added a printable box label export format.
+- Added duplicate sensor reporting for imported mapping and box sorting TXT files.
+
 ### 1. Mobile Operator Flow
 
 - Make the active task more obvious with stronger tab state and clearer loaded-file status.
@@ -53,7 +61,3 @@ The target use case is smartphone operation without installation, a server, or b
 ## Ideas to Consider Later
 
 - Add camera/barcode scan support if the browser can do it without installation.
-- Add a dark/high-contrast outdoor mode.
-- Add operator notes to exported log files.
-- Add optional import/export for track color settings.
-- Add a printable box label format.

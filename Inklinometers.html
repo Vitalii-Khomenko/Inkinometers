@@ -26,6 +26,41 @@
       min-height: 100vh;
       font-size: 16px;
     }
+    body.outdoor-mode {
+      --primary: #ffffff;
+      --accent: #ffea00;
+      --bg: #000000;
+      --error: #ff5252;
+      --success: #00ff7f;
+    }
+    body.outdoor-mode .card,
+    body.outdoor-mode .tab-btn.active {
+      background: #111111;
+      border: 1px solid #ffffff;
+      box-shadow: none;
+    }
+    body.outdoor-mode button {
+      color: #000000;
+      box-shadow: none;
+    }
+    body.outdoor-mode .danger {
+      color: #ffffff !important;
+    }
+    body.outdoor-mode input,
+    body.outdoor-mode select,
+    body.outdoor-mode textarea,
+    body.outdoor-mode .box-preview-block {
+      background: #000000;
+      color: #ffffff;
+      border-color: #ffea00;
+    }
+    body.outdoor-mode #status,
+    body.outdoor-mode #logFileStatus,
+    body.outdoor-mode #boxSortStatus,
+    body.outdoor-mode #boxSearchResult,
+    body.outdoor-mode #boxPreview {
+      color: #ffffff;
+    }
     main {
       width: 100vw;
       min-height: 100vh;
@@ -60,7 +95,7 @@
       font-weight: 500;
       color: var(--primary);
     }
-    input[type="number"], input[type="file"] {
+    input[type="number"], input[type="file"], textarea {
       font-size: 1em;
       padding: 0.5em 0.7em;
       border: 1.2px solid var(--accent);
@@ -72,6 +107,11 @@
       width: 100%;
       box-sizing: border-box;
       color: var(--primary);
+    }
+    textarea {
+      min-height: 5em;
+      resize: vertical;
+      font-family: inherit;
     }
     input[type="number"]:focus {
       border: 1.5px solid var(--success);
@@ -369,6 +409,7 @@
 <body>
   <main>
     <h2>Sensor Location Finder</h2>
+    <button type="button" id="outdoorModeToggle" style="max-width:370px;">Outdoor mode</button>
     <div class="tab-nav" style="display:flex; gap:0.5em; margin-bottom:1.2em;">
       <button type="button" id="tabSearch" class="tab-btn active" style="flex:1;">Sensor Search</button>
       <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
@@ -389,6 +430,8 @@
         <div id="status"></div>
         <div id="result"></div>
         <div id="checkedSensors"></div>
+        <label for="operatorNotes">Operator notes for exported log:</label>
+        <textarea id="operatorNotes" placeholder="Optional notes for exported session log"></textarea>
         <button type="button" id="chooseLogFile">Choose log file</button>
         <div id="logFileStatus"></div>
       </div>
@@ -410,6 +453,7 @@
         <div id="boxSortStatus"></div>
         <div id="boxSearchResult"></div>
         <button type="button" id="exportBoxLayout" disabled>Export box layout</button>
+        <button type="button" id="exportBoxLabels" disabled>Export box labels</button>
         <div id="boxPreview"></div>
       </div>
     </div>
@@ -434,6 +478,9 @@
           </select>
           <button type="submit">Add/Update</button>
         </form>
+        <button type="button" id="exportTrackColors">Export track colors</button>
+        <label for="importTrackColors">Import track colors (json/txt):</label>
+        <input type="file" id="importTrackColors" accept=".json,.txt">
         <div id="trackList"></div>
         <div style="margin:1em 0; text-align:center;">
           <button type="button" id="resetAppStorage" class="danger" style="margin:0.5em;">Reset all app data</button>
@@ -457,15 +504,19 @@
     let currentLogDownloadUrl = null;
     let boxSensorNumbers = [];
     let boxSourceFileName = '';
+    let boxDuplicateNumbers = [];
     let currentBoxExportUrl = null;
+    let currentBoxLabelsUrl = null;
 
     const TRACK_COLORS_STORAGE_KEY = 'trackColors';
+    const OUTDOOR_MODE_STORAGE_KEY = 'outdoorMode';
     const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
     const SENSOR_NUMBER_PATTERN = /^[0-9]{5,6}$/;
     const BOX_SIZE = 24;
     const BOX_ROW_SIZE = 8;
     const BOX_ROW_COUNT = 3;
     const BOX_LAYOUT_SUFFIX = 'box_layout';
+    const BOX_LABELS_SUFFIX = 'box_labels';
     const defaultTracks = [
       { name: 'U1', color: '#2a65ea' },
       { name: 'U2', color: '#1ec47c' },
@@ -525,6 +576,20 @@
       setLogFileStatus(window._logFileHandle ? 'Persistent log file selected.' : 'No persistent log file selected. Session download is available.');
     }
 
+    function setOutdoorMode(enabled) {
+      document.body.classList.toggle('outdoor-mode', enabled);
+      localStorage.setItem(OUTDOOR_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+      document.getElementById('outdoorModeToggle').textContent = enabled ? 'Standard mode' : 'Outdoor mode';
+    }
+
+    function loadOutdoorMode() {
+      setOutdoorMode(localStorage.getItem(OUTDOOR_MODE_STORAGE_KEY) === 'true');
+    }
+
+    function toggleOutdoorMode() {
+      setOutdoorMode(!document.body.classList.contains('outdoor-mode'));
+    }
+
     // Track color storage
     function saveTrackColors() {
       localStorage.setItem(TRACK_COLORS_STORAGE_KEY, JSON.stringify(trackColors));
@@ -579,6 +644,42 @@
       return uniqueEntries.length ? uniqueEntries : [...defaultTracks];
     }
 
+    function parseTrackColorImport(text) {
+      const parsed = JSON.parse(text);
+      const importedEntries = Array.isArray(parsed) ? parsed : parsed.trackColors;
+      if (!Array.isArray(importedEntries)) {
+        throw new Error('Track color import must contain an array.');
+      }
+
+      const previousValue = localStorage.getItem(TRACK_COLORS_STORAGE_KEY);
+      localStorage.setItem(TRACK_COLORS_STORAGE_KEY, JSON.stringify(importedEntries));
+      const normalizedEntries = loadTrackColors();
+
+      if (previousValue === null) {
+        localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
+      } else {
+        localStorage.setItem(TRACK_COLORS_STORAGE_KEY, previousValue);
+      }
+
+      return normalizedEntries;
+    }
+
+    function exportTrackColors() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        trackColors
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'track_colors.json';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
     // Status rendering
     function updateStatus(message) {
       const statusDiv = document.getElementById('status');
@@ -597,6 +698,7 @@
     function parseSensorFile(text) {
       const lines = text.split(/\r?\n/);
       const mapping = {};
+      const duplicateNumbers = [];
       for (let line of lines) {
         line = line.trim();
         if (!line) continue;
@@ -608,10 +710,14 @@
         if (parts.length >= 2) {
           const num = parts[0].trim();
           const location = parts.slice(1).join(' ').replace(/\s+/g, ' ').trim();
+          if (Object.prototype.hasOwnProperty.call(mapping, num)) {
+            duplicateNumbers.push(num);
+            continue;
+          }
           mapping[num] = location;
         }
       }
-      return mapping;
+      return { mapping, duplicateNumbers };
     }
 
     document.getElementById('fileInput').addEventListener('change', async function(event) {
@@ -619,7 +725,8 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = async function(e) {
-        const mapping = parseSensorFile(e.target.result);
+        const parsedFile = parseSensorFile(e.target.result);
+        const mapping = parsedFile.mapping;
         // Collect all tracks from the second column for all rows (case-insensitive, no duplicates)
         const allTrackNames = Array.from(new Set(Object.entries(mapping)
           .map(([num, location]) => {
@@ -644,12 +751,18 @@
         totalSensors = Object.keys(sensorLocations).length;
         foundSensors.clear();
         logLines = [];
-        updateStatus();
+        const duplicateStatus = parsedFile.duplicateNumbers.length
+          ? `Duplicate sensors ignored: ${parsedFile.duplicateNumbers.join(', ')}`
+          : null;
+        updateStatus(duplicateStatus);
         updateCheckedSensors();
         document.getElementById('result').replaceChildren();
         updateLogDownload();
         updateLogFileControls();
-        alert('Sensor mapping loaded from file!\nSensors: ' + totalSensors + '\nTracks: ' + allTrackNames.length + ' (' + allTrackNames.join(', ') + ')');
+        const duplicateMessage = duplicateStatus
+          ? '\n' + duplicateStatus
+          : '';
+        alert('Sensor mapping loaded from file!\nSensors: ' + totalSensors + '\nTracks: ' + allTrackNames.length + ' (' + allTrackNames.join(', ') + ')' + duplicateMessage);
       };
       reader.readAsText(file);
     });
@@ -725,6 +838,7 @@
     function parseBoxSensorNumbers(text) {
       const tokens = text.split(/\s+/).map(token => token.trim()).filter(Boolean);
       const uniqueNumbers = new Set();
+      const duplicateNumbers = [];
       let invalidCount = 0;
       let duplicateCount = 0;
 
@@ -736,6 +850,7 @@
 
         if (uniqueNumbers.has(token)) {
           duplicateCount += 1;
+          duplicateNumbers.push(token);
           continue;
         }
 
@@ -743,7 +858,7 @@
       }
 
       const numbers = Array.from(uniqueNumbers).sort((left, right) => Number(left) - Number(right));
-      return { numbers, invalidCount, duplicateCount };
+      return { numbers, duplicateNumbers, invalidCount, duplicateCount };
     }
 
     function getBoxPositionByIndex(index) {
@@ -778,7 +893,11 @@
       return `${getFileBaseName(sourceFileName)}_${BOX_LAYOUT_SUFFIX}.txt`;
     }
 
-    function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date()) {
+    function getBoxLabelsFileName(sourceFileName) {
+      return `${getFileBaseName(sourceFileName)}_${BOX_LABELS_SUFFIX}.txt`;
+    }
+
+    function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = []) {
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
       const lines = [
@@ -786,6 +905,7 @@
         `Source file: ${sourceName}`,
         `Exported at: ${exportTimestamp}`,
         `Total sensors: ${numbers.length}`,
+        `Duplicate sensors ignored: ${duplicateNumbers.length ? duplicateNumbers.join(', ') : 'None'}`,
         `Box capacity: ${BOX_SIZE} sensors (${BOX_ROW_COUNT} rows x ${BOX_ROW_SIZE})`,
         ''
       ];
@@ -814,6 +934,34 @@
       return lines.join('\n');
     }
 
+    function formatBoxLabels(numbers, sourceFileName = '', exportedAt = new Date()) {
+      const exportTimestamp = exportedAt.toISOString();
+      const sourceName = sourceFileName || 'Unknown source file';
+      const lines = [
+        'Printable Box Labels',
+        `Source file: ${sourceName}`,
+        `Exported at: ${exportTimestamp}`,
+        ''
+      ];
+
+      const boxCount = Math.ceil(numbers.length / BOX_SIZE);
+      for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
+        const boxNumbers = numbers.slice(boxIndex * BOX_SIZE, (boxIndex + 1) * BOX_SIZE);
+        const firstSensor = boxNumbers[0] || '------';
+        const lastSensor = boxNumbers[boxNumbers.length - 1] || '------';
+
+        lines.push('================================');
+        lines.push(`BOX ${boxIndex + 1}`);
+        lines.push(`Sensors: ${firstSensor} - ${lastSensor}`);
+        lines.push(`Count: ${boxNumbers.length} / ${BOX_SIZE}`);
+        lines.push(`Rows: ${BOX_ROW_COUNT} x ${BOX_ROW_SIZE}`);
+        lines.push('================================');
+        lines.push('');
+      }
+
+      return lines.join('\n');
+    }
+
     function setBoxSearchMessage(message, isError = true) {
       const result = document.getElementById('boxSearchResult');
       const messageSpan = document.createElement('span');
@@ -828,7 +976,7 @@
       preview.replaceChildren();
       if (!boxSensorNumbers.length) return;
 
-      const previewText = formatBoxLayout(boxSensorNumbers, boxSourceFileName);
+      const previewText = formatBoxLayout(boxSensorNumbers, boxSourceFileName, new Date(), boxDuplicateNumbers);
       const previewBlock = document.createElement('div');
       previewBlock.className = 'box-preview-block';
       previewBlock.textContent = previewText;
@@ -841,18 +989,24 @@
 
     function updateBoxExportButton() {
       document.getElementById('exportBoxLayout').disabled = boxSensorNumbers.length === 0;
+      document.getElementById('exportBoxLabels').disabled = boxSensorNumbers.length === 0;
     }
 
     function updateBoxSortingData(parsed) {
       boxSensorNumbers = parsed.numbers;
+      boxDuplicateNumbers = parsed.duplicateNumbers;
       updateBoxExportButton();
       renderBoxPreview();
       document.getElementById('boxSearchResult').replaceChildren();
 
       const boxCount = Math.ceil(boxSensorNumbers.length / BOX_SIZE);
+      const duplicateList = parsed.duplicateNumbers.length
+        ? ` Duplicates: ${parsed.duplicateNumbers.join(', ')}.`
+        : '';
       setBoxSortStatus(
         `Loaded ${boxSensorNumbers.length} unique sensors into ${boxCount} box(es). ` +
-        `Ignored ${parsed.invalidCount} invalid value(s) and ${parsed.duplicateCount} duplicate value(s).`
+        `Ignored ${parsed.invalidCount} invalid value(s) and ${parsed.duplicateCount} duplicate value(s).` +
+        duplicateList
       );
     }
 
@@ -864,7 +1018,7 @@
         currentBoxExportUrl = null;
       }
 
-      const blob = new Blob([formatBoxLayout(boxSensorNumbers, boxSourceFileName)], { type: 'text/plain' });
+      const blob = new Blob([formatBoxLayout(boxSensorNumbers, boxSourceFileName, new Date(), boxDuplicateNumbers)], { type: 'text/plain' });
       currentBoxExportUrl = URL.createObjectURL(blob);
 
       const link = document.createElement('a');
@@ -873,6 +1027,41 @@
       document.body.append(link);
       link.click();
       link.remove();
+    }
+
+    function exportBoxLabels() {
+      if (!boxSensorNumbers.length) return;
+
+      if (currentBoxLabelsUrl) {
+        URL.revokeObjectURL(currentBoxLabelsUrl);
+        currentBoxLabelsUrl = null;
+      }
+
+      const blob = new Blob([formatBoxLabels(boxSensorNumbers, boxSourceFileName)], { type: 'text/plain' });
+      currentBoxLabelsUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = currentBoxLabelsUrl;
+      link.download = getBoxLabelsFileName(boxSourceFileName);
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
+
+    function getOperatorNotes() {
+      return document.getElementById('operatorNotes').value.trim();
+    }
+
+    function buildSessionLogText() {
+      const lines = [
+        'Sensor Search Log',
+        `Exported at: ${new Date().toISOString()}`,
+        `Operator notes: ${getOperatorNotes() || 'None'}`,
+        '',
+        ...logLines
+      ];
+
+      return lines.join('\n');
     }
 
     function updateCheckedSensors() {
@@ -929,6 +1118,7 @@
         localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
         window._logFileHandle = null;
         boxSourceFileName = '';
+        boxDuplicateNumbers = [];
         if (currentLogDownloadUrl) {
           URL.revokeObjectURL(currentLogDownloadUrl);
           currentLogDownloadUrl = null;
@@ -936,6 +1126,10 @@
         if (currentBoxExportUrl) {
           URL.revokeObjectURL(currentBoxExportUrl);
           currentBoxExportUrl = null;
+        }
+        if (currentBoxLabelsUrl) {
+          URL.revokeObjectURL(currentBoxLabelsUrl);
+          currentBoxLabelsUrl = null;
         }
         alert('All app data and settings have been reset. The page will reload.');
         location.reload();
@@ -1072,13 +1266,19 @@
       inputElem.focus();
     });
 
+    document.getElementById('operatorNotes').addEventListener('input', function() {
+      if (logLines.length) updateLogDownload();
+    });
+
     document.getElementById('exportBoxLayout').addEventListener('click', exportBoxLayout);
+    document.getElementById('exportBoxLabels').addEventListener('click', exportBoxLabels);
+    document.getElementById('outdoorModeToggle').addEventListener('click', toggleOutdoorMode);
     document.getElementById('chooseLogFile').addEventListener('click', chooseLogFile);
     document.getElementById('resetAppStorage').addEventListener('click', resetAppStorage);
     document.getElementById('resetLogFileHandle').addEventListener('click', resetLogFileHandle);
 
     function updateLogDownload() {
-      const logText = logLines.join('\n');
+      const logText = buildSessionLogText();
       let logDiv = document.getElementById('logDownload');
       logDiv.replaceChildren();
       if (currentLogDownloadUrl) {
@@ -1201,7 +1401,30 @@
       this.reset();
     });
 
-    window.removeTrack = function(idx) {
+    document.getElementById('exportTrackColors').addEventListener('click', exportTrackColors);
+
+    document.getElementById('importTrackColors').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          trackColors = parseTrackColorImport(e.target.result);
+          saveTrackColors();
+          renderTrackList();
+          updateCheckedSensors();
+          alert('Track colors imported successfully.');
+        } catch (error) {
+          alert('Track color import failed. Please check the file format.');
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function removeTrack(idx) {
       const selectedTrack = trackColors[idx];
       if (!selectedTrack) return;
       if (isDefaultTrack(selectedTrack.name)) {
@@ -1216,6 +1439,7 @@
 
     renderTrackList();
     updateLogFileControls();
+    loadOutdoorMode();
 
     // Initial status
     updateStatus();
