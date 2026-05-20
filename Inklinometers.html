@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sensor Location Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+    :root {
+      --primary: #222831;
+      --accent: #00adb5;
+      --bg: #f7f7fa;
+      --error: #dc3545;
+      --success: #00a86b;
+      --radius: 10px;
+      --u1: #2a65ea;
+      --u2: #1ec47c;
+      --n1: #ad3ee6;
+      --n2: #ffd600;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--primary);
+      font-family: "Roboto", "Arial", sans-serif;
+      min-height: 100vh;
+      font-size: 16px;
+    }
+    main {
+      width: 100vw;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 1.2em;
+    }
+    h2 {
+      font-size: 1.3em;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.8em;
+      color: var(--primary);
+    }
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(34,40,49,0.07);
+      padding: 0.8em 0.7em 1.2em 0.7em;
+      width: 98vw;
+      max-width: 370px;
+      margin-bottom: 1.2em;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    label {
+      font-size: 0.98em;
+      margin-bottom: .3em;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    input[type="number"], input[type="file"] {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      outline: none;
+      background: #f7f7fa;
+      margin-bottom: 1em;
+      transition: border .2s;
+      width: 100%;
+      box-sizing: border-box;
+      color: var(--primary);
+    }
+    input[type="number"]:focus {
+      border: 1.5px solid var(--success);
+    }
+    input[type="file"] {
+      border: none;
+      margin-bottom: 1em;
+      padding: 0.5em 0.7em;
+      font-size: 1em;
+      background: #f7f7fa;
+      color: var(--primary);
+      border-radius: var(--radius);
+      box-sizing: border-box;
+      width: 100%;
+      cursor: pointer;
+      transition: background .17s;
+      border: 1.2px solid var(--accent);
+      outline: none;
+    }
+    input[type="file"]:hover {
+      background: #e6f9fa;
+    }
+    input[type="file"]::-webkit-file-upload-button,
+    input[type="file"]::-ms-browse,
+    input[type="file"]::file-selector-button {
+      font-size: 1em;
+      padding: .6em 1em;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+    }
+    input[type="file"]:focus::-webkit-file-upload-button,
+    input[type="file"]:focus::-ms-browse,
+    input[type="file"]:focus::file-selector-button {
+      background: #019fa6;
+    }
+    button {
+      font-size: 1em;
+      padding: .7em 0;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      margin-top: 0.2em;
+      margin-bottom: 0.5em;
+      width: 100%;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+    }
+    button:active {
+      background: #019fa6;
+    }
+    .danger {
+      background: var(--error) !important;
+      color: #fff !important;
+      border: none;
+      transition: background .18s;
+    }
+    .danger:hover {
+      background: #a71d2a !important;
+    }
+    #result {
+      font-size: 1em;
+      margin-top: 1em;
+      text-align: center;
+      min-height: 2em;
+      word-break: break-all;
+    }
+    #notfound {
+      color: var(--error);
+      font-weight: 600;
+    }
+    .found {
+      font-weight: 600;
+      padding: 0.35em 0.7em;
+      border-radius: var(--radius);
+      display: inline-block;
+      margin: 0.3em 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      font-size: 1em;
+      letter-spacing: 0.01em;
+      transition: background .2s, color .2s;
+    }
+    #status {
+      margin-top: 0.3em;
+      margin-bottom: 0.3em;
+      text-align: center;
+      font-size: 0.97em;
+      color: #555;
+    }
+    #logDownload {
+      margin-top: 1.2em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #logDownload a {
+      color: var(--accent);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+    #checkedSensors {
+      margin-top: 0.7em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #boxSortStatus,
+    #boxSearchResult,
+    #boxPreview {
+      margin-top: 0.7em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #boxPreview {
+      text-align: left;
+      overflow-x: auto;
+    }
+    .box-preview-block {
+      background: #f7f7fa;
+      border: 1px solid #d8eef0;
+      border-radius: 6px;
+      margin: 0.7em 0;
+      padding: 0.6em;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.9em;
+      white-space: pre;
+    }
+    #logFileStatus {
+      margin-top: 0.2em;
+      margin-bottom: 0.8em;
+      min-height: 1.2em;
+      text-align: center;
+      font-size: 0.9em;
+      color: #555;
+    }
+    .tab-nav {
+      gap: 0.2em !important;
+      margin-bottom: 0.7em !important;
+    }
+    .tab-btn {
+      background: #e6f9fa;
+      color: var(--primary);
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius) var(--radius) 0 0;
+      font-size: 1em;
+      font-weight: 500;
+      box-shadow: none;
+      margin: 0;
+      padding: 0.5em 0;
+      transition: background .18s, color .18s;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--accent);
+      border-bottom: 2px solid #fff;
+      font-weight: 700;
+    }
+    #tabContentTracks .card {
+      margin-bottom: 0;
+      padding: 1em 0.7em 1.2em 0.7em;
+      max-width: 370px;
+      width: 100%;
+    }
+    #trackForm {
+      display: flex;
+      gap: 0.5em;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 0.7em;
+    }
+    #trackName {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      outline: none;
+      background: #f7f7fa;
+      min-width: 5em;
+      flex: 1;
+      color: var(--primary);
+      box-sizing: border-box;
+      transition: border .2s;
+    }
+    #trackName:focus {
+      border: 1.5px solid var(--success);
+    }
+    #trackColor {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      background: #f7f7fa;
+      color: var(--primary);
+      min-width: 6em;
+      box-sizing: border-box;
+      transition: border .2s;
+    }
+    #trackColor:focus {
+      border: 1.5px solid var(--success);
+    }
+    #trackForm button[type="submit"] {
+      font-size: 1em;
+      padding: 0.5em 1em;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+      min-width: 5em;
+    }
+    #trackForm button[type="submit"]:active {
+      background: #019fa6;
+    }
+    .track-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-bottom: 0.5em;
+      font-size: 0.97em;
+      justify-content: space-between;
+    }
+    .track-row-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .track-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--error);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.2em 0.9em;
+      font-size: 0.97em;
+      cursor: pointer;
+      margin-left: 0.5em;
+      transition: background .18s;
+      min-width: 80px;
+      max-width: 80px;
+      width: 80px;
+      text-align: center;
+      align-self: flex-end;
+      margin-right: 15%;
+      box-sizing: border-box;
+      overflow: visible;
+      white-space: nowrap;
+    }
+    .track-remove:hover {
+      background: #a71d2a;
+    }
+    .track-remove:disabled {
+      background: #9aa0a6;
+      cursor: not-allowed;
+    }
+    .track-color {
+      display: inline-block;
+      width: 1.3em;
+      height: 1.3em;
+      border-radius: 50%;
+      margin-right: 0.5em;
+      border: 2px solid #eee;
+      vertical-align: middle;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    @media (max-width: 500px) {
+      html, body { font-size: 14px; }
+      h2 { font-size: 1.08em; }
+      .card, #tabContentTracks .card { max-width: 99vw; padding: 0.5em 0.2em 0.7em 0.2em; }
+      #result { font-size: 0.97em; }
+      #status { font-size: 0.93em; }
+      #logDownload { font-size: 0.9em; }
+      .found { font-size: 0.97em; }
+      #checkedSensors { font-size: 0.93em; }
+      #boxSortStatus, #boxSearchResult, #boxPreview { font-size: 0.93em; }
+      .track-row { font-size: 0.93em; }
+      #trackForm button[type="submit"] { min-width: 3.5em; }
+      #trackColor, #trackName { min-width: 3.5em; }
+      .track-color { width: 1.1em; height: 1.1em; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>Sensor Location Finder</h2>
+    <div class="tab-nav" style="display:flex; gap:0.5em; margin-bottom:1.2em;">
+      <button type="button" id="tabSearch" class="tab-btn active" style="flex:1;">Sensor Search</button>
+      <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
+      <button type="button" id="tabTracks" class="tab-btn" style="flex:1;">Track Colors</button>
+    </div>
+    <div id="tabContentSearch">
+      <div class="card">
+        <label for="fileInput">Load sensor mapping (txt, e.g. 151336 U2 1 MQ001 per line):</label>
+        <input type="file" id="fileInput" accept=".txt">
+        <form id="sensorForm" autocomplete="off">
+          <label for="sensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="number" id="sensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Show location</button>
+        </form>
+        <div id="status"></div>
+        <div id="result"></div>
+        <div id="checkedSensors"></div>
+        <button type="button" id="chooseLogFile">Choose log file</button>
+        <div id="logFileStatus"></div>
+      </div>
+      <div id="logDownload"></div>
+    </div>
+    <div id="tabContentBoxes" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Box Sorting</h3>
+        <label for="boxFileInput">Load chaotic sensor number list (txt):</label>
+        <input type="file" id="boxFileInput" accept=".txt">
+        <form id="boxSearchForm" autocomplete="off">
+          <label for="boxSensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="number" id="boxSensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearBoxSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Show box position</button>
+        </form>
+        <div id="boxSortStatus"></div>
+        <div id="boxSearchResult"></div>
+        <button type="button" id="exportBoxLayout" disabled>Export box layout</button>
+        <div id="boxPreview"></div>
+      </div>
+    </div>
+    <div id="tabContentTracks" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Track Color Settings</h3>
+        <form id="trackForm" autocomplete="off">
+          <input type="text" id="trackName" placeholder="Track name (e.g. U1)" required>
+          <select id="trackColor">
+            <option value="#2a65ea">Blue</option>
+            <option value="#1ec47c">Green</option>
+            <option value="#ad3ee6">Purple</option>
+            <option value="#ffd600">Yellow</option>
+            <option value="#e53935">Red</option>
+            <option value="#ff9800">Orange</option>
+            <option value="#00bcd4">Cyan</option>
+            <option value="#607d8b">Gray</option>
+            <option value="#795548">Brown</option>
+            <option value="#8bc34a">Lime</option>
+            <option value="#f06292">Pink</option>
+            <option value="#6d4c41">Coffee</option>
+          </select>
+          <button type="submit">Add/Update</button>
+        </form>
+        <div id="trackList"></div>
+        <div style="margin:1em 0; text-align:center;">
+          <button type="button" id="resetAppStorage" class="danger" style="margin:0.5em;">Reset all app data</button>
+          <button type="button" id="resetLogFileHandle" class="danger" style="margin:0.5em;">Reset log file selection</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    // Default mapping (use your real data here)
+    let sensorLocations = {
+      "151336": "U2 1 MQ001",
+      "97720": "U1 2 MQ014",
+      "12345": "N1 3 MQ010",
+      "65432": "N2 4 MQ003"
+    };
+
+    let totalSensors = Object.keys(sensorLocations).length;
+    const foundSensors = new Set();
+    let logLines = [];
+    let currentLogDownloadUrl = null;
+    let boxSensorNumbers = [];
+    let boxSourceFileName = '';
+    let currentBoxExportUrl = null;
+
+    const TRACK_COLORS_STORAGE_KEY = 'trackColors';
+    const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+    const SENSOR_NUMBER_PATTERN = /^[0-9]{5,6}$/;
+    const BOX_SIZE = 24;
+    const BOX_ROW_SIZE = 8;
+    const BOX_ROW_COUNT = 3;
+    const BOX_LAYOUT_SUFFIX = 'box_layout';
+    const defaultTracks = [
+      { name: 'U1', color: '#2a65ea' },
+      { name: 'U2', color: '#1ec47c' },
+      { name: 'N1', color: '#ad3ee6' },
+      { name: 'N2', color: '#ffd600' }
+    ];
+
+    // Shared UI helpers
+    function getContrastColor(bg) {
+      if (!bg) return '#fff';
+      const c = bg.charAt(0) === '#' ? bg.substring(1, 7) : bg;
+      const r = parseInt(c.substring(0, 2), 16);
+      const g = parseInt(c.substring(2, 4), 16);
+      const b = parseInt(c.substring(4, 6), 16);
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return (yiq >= 180) ? '#222' : '#fff';
+    }
+
+    function setResultMessage(message) {
+      const resultDiv = document.getElementById('result');
+      const messageSpan = document.createElement('span');
+      messageSpan.id = 'notfound';
+      messageSpan.textContent = message;
+      resultDiv.replaceChildren(messageSpan);
+    }
+
+    function createFoundBadge(text, color) {
+      const badge = document.createElement('span');
+      badge.className = 'found';
+      badge.textContent = text;
+      if (color) {
+        badge.style.background = color;
+        badge.style.color = getContrastColor(color);
+      }
+      return badge;
+    }
+
+    function isPersistentLogSupported() {
+      const isFirefox = navigator.userAgent.includes('Firefox');
+      const isBrave = typeof navigator.brave !== 'undefined';
+      return Boolean(window.showSaveFilePicker && !isFirefox && !isBrave);
+    }
+
+    function setLogFileStatus(message) {
+      document.getElementById('logFileStatus').textContent = message;
+    }
+
+    function updateLogFileControls() {
+      const chooseLogFileButton = document.getElementById('chooseLogFile');
+      if (!isPersistentLogSupported()) {
+        chooseLogFileButton.disabled = true;
+        setLogFileStatus('Persistent log file writing is not supported in this browser. Use session download.');
+        return;
+      }
+
+      chooseLogFileButton.disabled = false;
+      setLogFileStatus(window._logFileHandle ? 'Persistent log file selected.' : 'No persistent log file selected. Session download is available.');
+    }
+
+    // Track color storage
+    function saveTrackColors() {
+      localStorage.setItem(TRACK_COLORS_STORAGE_KEY, JSON.stringify(trackColors));
+    }
+
+    function isValidTrackColorEntry(entry) {
+      return Boolean(
+        entry &&
+        typeof entry.name === 'string' &&
+        entry.name.trim() &&
+        typeof entry.color === 'string' &&
+        HEX_COLOR_PATTERN.test(entry.color)
+      );
+    }
+
+    function loadTrackColors() {
+      let parsed = [];
+      try {
+        parsed = JSON.parse(localStorage.getItem(TRACK_COLORS_STORAGE_KEY) || '[]');
+      } catch (error) {
+        localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
+        return [...defaultTracks];
+      }
+
+      if (!Array.isArray(parsed)) {
+        localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
+        return [...defaultTracks];
+      }
+
+      const uniqueEntries = [];
+      const seenNames = new Set();
+      for (const entry of parsed) {
+        if (!isValidTrackColorEntry(entry)) continue;
+
+        const normalizedName = entry.name.trim().toUpperCase();
+        if (seenNames.has(normalizedName)) continue;
+
+        seenNames.add(normalizedName);
+        uniqueEntries.push({
+          name: entry.name.trim().toUpperCase(),
+          color: entry.color
+        });
+      }
+
+      for (const defaultTrack of defaultTracks) {
+        if (!seenNames.has(defaultTrack.name)) {
+          seenNames.add(defaultTrack.name);
+          uniqueEntries.push(defaultTrack);
+        }
+      }
+
+      return uniqueEntries.length ? uniqueEntries : [...defaultTracks];
+    }
+
+    // Status rendering
+    function updateStatus(message) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.replaceChildren(document.createTextNode(`Processed: ${foundSensors.size} / ${totalSensors} sensors`));
+      if (message) {
+        const lineBreak = document.createElement('br');
+        const messageSpan = document.createElement('span');
+        messageSpan.style.color = 'var(--error)';
+        messageSpan.style.fontSize = '0.98em';
+        messageSpan.textContent = message;
+        statusDiv.append(lineBreak, messageSpan);
+      }
+    }
+
+    // Sensor mapping parsing
+    function parseSensorFile(text) {
+      const lines = text.split(/\r?\n/);
+      const mapping = {};
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        // Prefer tab split, fallback to spaces
+        let parts = line.split('\t');
+        if (parts.length < 2) {
+          parts = line.split(/\s{2,}|\s+/);
+        }
+        if (parts.length >= 2) {
+          const num = parts[0].trim();
+          const location = parts.slice(1).join(' ').replace(/\s+/g, ' ').trim();
+          mapping[num] = location;
+        }
+      }
+      return mapping;
+    }
+
+    document.getElementById('fileInput').addEventListener('change', async function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const mapping = parseSensorFile(e.target.result);
+        // Collect all tracks from the second column for all rows (case-insensitive, no duplicates)
+        const allTrackNames = Array.from(new Set(Object.entries(mapping)
+          .map(([num, location]) => {
+            // Restore original line: number + location
+            const line = num + ' ' + location;
+            // Split by spaces and tabs
+            let parts = line.split(/\s+|\t/).filter(Boolean);
+            return (parts[1] || '').toUpperCase();
+          })
+          .filter(Boolean)));
+        let missing = [];
+        for (const defaultTrack of defaultTracks) {
+          if (!allTrackNames.includes(defaultTrack.name.toUpperCase())) {
+            missing.push(defaultTrack.name);
+          }
+        }
+        if (missing.length) {
+          alert('Default track(s) not found in file: ' + missing.join(', ') + '\nPlease check your file.');
+          return;
+        }
+        sensorLocations = mapping;
+        totalSensors = Object.keys(sensorLocations).length;
+        foundSensors.clear();
+        logLines = [];
+        updateStatus();
+        updateCheckedSensors();
+        document.getElementById('result').replaceChildren();
+        updateLogDownload();
+        updateLogFileControls();
+        alert('Sensor mapping loaded from file!\nSensors: ' + totalSensors + '\nTracks: ' + allTrackNames.length + ' (' + allTrackNames.join(', ') + ')');
+      };
+      reader.readAsText(file);
+    });
+
+    // Sensor lookup
+    function findSensor(sensorNumber) {
+      const numStr = String(sensorNumber).trim();
+      if (Object.prototype.hasOwnProperty.call(sensorLocations, numStr)) {
+        return {
+          status: 'found',
+          sensorId: numStr,
+          location: sensorLocations[numStr],
+          matches: []
+        };
+      }
+
+      const matches = Object.keys(sensorLocations)
+        .filter(key => key.endsWith(numStr))
+        .map(sensorId => ({ sensorId, location: sensorLocations[sensorId] }));
+
+      if (matches.length === 1) {
+        return {
+          status: 'found',
+          sensorId: matches[0].sensorId,
+          location: matches[0].location,
+          matches
+        };
+      }
+
+      if (matches.length > 1) {
+        return {
+          status: 'ambiguous',
+          sensorId: null,
+          location: null,
+          matches
+        };
+      }
+
+      return {
+        status: 'not_found',
+        sensorId: null,
+        location: null,
+        matches: []
+      };
+    }
+
+    // Result rendering
+    function getTrackColorByLocation(location) {
+      if (!location || !trackColors.length) return null;
+      // Try to find a track name match among all words in location
+      const parts = location.trim().split(/\s+/);
+      for (const t of trackColors) {
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i].toLowerCase() === t.name.toLowerCase()) {
+            return t.color;
+          }
+        }
+      }
+      return null;
+    }
+
+    function renderSensorResult(input, location) {
+      const userColor = getTrackColorByLocation(location);
+      document.getElementById('result').replaceChildren(createFoundBadge(`Location: ${location}`, userColor));
+    }
+
+    function renderAmbiguousSensorResult(input, matches) {
+      const matchList = matches.map(match => match.sensorId).join(', ');
+      setResultMessage(`Sensor number ${input} is ambiguous. Matches: ${matchList}.`);
+    }
+
+    // Box sorting
+    function parseBoxSensorNumbers(text) {
+      const tokens = text.split(/\s+/).map(token => token.trim()).filter(Boolean);
+      const uniqueNumbers = new Set();
+      let invalidCount = 0;
+      let duplicateCount = 0;
+
+      for (const token of tokens) {
+        if (!SENSOR_NUMBER_PATTERN.test(token)) {
+          invalidCount += 1;
+          continue;
+        }
+
+        if (uniqueNumbers.has(token)) {
+          duplicateCount += 1;
+          continue;
+        }
+
+        uniqueNumbers.add(token);
+      }
+
+      const numbers = Array.from(uniqueNumbers).sort((left, right) => Number(left) - Number(right));
+      return { numbers, invalidCount, duplicateCount };
+    }
+
+    function getBoxPositionByIndex(index) {
+      return {
+        box: Math.floor(index / BOX_SIZE) + 1,
+        row: Math.floor((index % BOX_SIZE) / BOX_ROW_SIZE) + 1,
+        position: (index % BOX_ROW_SIZE) + 1
+      };
+    }
+
+    function findBoxPlacement(sensorNumber) {
+      const sensorId = String(sensorNumber).trim();
+      const index = boxSensorNumbers.indexOf(sensorId);
+      if (index === -1) return null;
+
+      return {
+        sensorId,
+        index,
+        ...getBoxPositionByIndex(index)
+      };
+    }
+
+    function getFileBaseName(fileName) {
+      const trimmedName = String(fileName || '').trim();
+      const lastDotIndex = trimmedName.lastIndexOf('.');
+      if (lastDotIndex <= 0) return trimmedName || 'sensors';
+
+      return trimmedName.slice(0, lastDotIndex);
+    }
+
+    function getBoxLayoutFileName(sourceFileName) {
+      return `${getFileBaseName(sourceFileName)}_${BOX_LAYOUT_SUFFIX}.txt`;
+    }
+
+    function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date()) {
+      const exportTimestamp = exportedAt.toISOString();
+      const sourceName = sourceFileName || 'Unknown source file';
+      const lines = [
+        'Sensor Box Layout',
+        `Source file: ${sourceName}`,
+        `Exported at: ${exportTimestamp}`,
+        `Total sensors: ${numbers.length}`,
+        `Box capacity: ${BOX_SIZE} sensors (${BOX_ROW_COUNT} rows x ${BOX_ROW_SIZE})`,
+        ''
+      ];
+
+      const boxCount = Math.ceil(numbers.length / BOX_SIZE);
+      for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
+        lines.push(`Box ${boxIndex + 1}`);
+        lines.push('Position:     1      2      3      4      5      6      7      8');
+
+        for (let rowIndex = 0; rowIndex < BOX_ROW_COUNT; rowIndex += 1) {
+          const rowStart = (boxIndex * BOX_SIZE) + (rowIndex * BOX_ROW_SIZE);
+          const rowNumbers = numbers
+            .slice(rowStart, rowStart + BOX_ROW_SIZE)
+            .map(number => number.padStart(6, ' '));
+
+          while (rowNumbers.length < BOX_ROW_SIZE) {
+            rowNumbers.push('------');
+          }
+
+          lines.push(`Row ${rowIndex + 1}:   ${rowNumbers.join(' ')}`);
+        }
+
+        lines.push('');
+      }
+
+      return lines.join('\n');
+    }
+
+    function setBoxSearchMessage(message, isError = true) {
+      const result = document.getElementById('boxSearchResult');
+      const messageSpan = document.createElement('span');
+      messageSpan.className = isError ? '' : 'found';
+      messageSpan.id = isError ? 'notfound' : '';
+      messageSpan.textContent = message;
+      result.replaceChildren(messageSpan);
+    }
+
+    function renderBoxPreview() {
+      const preview = document.getElementById('boxPreview');
+      preview.replaceChildren();
+      if (!boxSensorNumbers.length) return;
+
+      const previewText = formatBoxLayout(boxSensorNumbers, boxSourceFileName);
+      const previewBlock = document.createElement('div');
+      previewBlock.className = 'box-preview-block';
+      previewBlock.textContent = previewText;
+      preview.append(previewBlock);
+    }
+
+    function setBoxSortStatus(message) {
+      document.getElementById('boxSortStatus').textContent = message;
+    }
+
+    function updateBoxExportButton() {
+      document.getElementById('exportBoxLayout').disabled = boxSensorNumbers.length === 0;
+    }
+
+    function updateBoxSortingData(parsed) {
+      boxSensorNumbers = parsed.numbers;
+      updateBoxExportButton();
+      renderBoxPreview();
+      document.getElementById('boxSearchResult').replaceChildren();
+
+      const boxCount = Math.ceil(boxSensorNumbers.length / BOX_SIZE);
+      setBoxSortStatus(
+        `Loaded ${boxSensorNumbers.length} unique sensors into ${boxCount} box(es). ` +
+        `Ignored ${parsed.invalidCount} invalid value(s) and ${parsed.duplicateCount} duplicate value(s).`
+      );
+    }
+
+    function exportBoxLayout() {
+      if (!boxSensorNumbers.length) return;
+
+      if (currentBoxExportUrl) {
+        URL.revokeObjectURL(currentBoxExportUrl);
+        currentBoxExportUrl = null;
+      }
+
+      const blob = new Blob([formatBoxLayout(boxSensorNumbers, boxSourceFileName)], { type: 'text/plain' });
+      currentBoxExportUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = currentBoxExportUrl;
+      link.download = getBoxLayoutFileName(boxSourceFileName);
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
+
+    function updateCheckedSensors() {
+      const checkedDiv = document.getElementById('checkedSensors');
+      checkedDiv.replaceChildren();
+      if (foundSensors.size === 0) {
+        return;
+      }
+      const title = document.createElement('b');
+      title.textContent = 'Checked sensors:';
+      checkedDiv.append(title, document.createElement('br'));
+      foundSensors.forEach(sensorId => {
+        const loc = sensorLocations[sensorId];
+        const userColor = getTrackColorByLocation(loc);
+        const badge = createFoundBadge(sensorId, userColor);
+        badge.style.margin = '2px 4px 2px 0';
+        badge.style.cursor = 'pointer';
+        badge.addEventListener('click', () => showCheckedSensor(sensorId));
+        checkedDiv.append(badge);
+      });
+    }
+
+    function showCheckedSensor(sensorId) {
+      const location = sensorLocations[sensorId];
+      if (location) {
+        renderSensorResult(sensorId, location);
+      }
+    }
+
+    // Persistent logging
+    async function chooseLogFile() {
+      if (!isPersistentLogSupported()) {
+        updateLogFileControls();
+        return;
+      }
+
+      try {
+        window._logFileHandle = await window.showSaveFilePicker({
+          suggestedName: 'sensor_log.txt',
+          types: [{
+            description: 'Text Files',
+            accept: {'text/plain': ['.txt']}
+          }]
+        });
+        updateLogFileControls();
+      } catch (error) {
+        window._logFileHandle = null;
+        updateLogFileControls();
+      }
+    }
+
+    function resetAppStorage() {
+      if (confirm('WARNING! This will erase this app data, track colors, and checked sensors.\nAre you sure you want to reset everything?')) {
+        localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
+        window._logFileHandle = null;
+        boxSourceFileName = '';
+        if (currentLogDownloadUrl) {
+          URL.revokeObjectURL(currentLogDownloadUrl);
+          currentLogDownloadUrl = null;
+        }
+        if (currentBoxExportUrl) {
+          URL.revokeObjectURL(currentBoxExportUrl);
+          currentBoxExportUrl = null;
+        }
+        alert('All app data and settings have been reset. The page will reload.');
+        location.reload();
+      }
+    }
+    function resetLogFileHandle() {
+      if (confirm('This will clear the selected persistent log file.\nYou can choose a new log file with the Choose log file button.\nContinue?')) {
+        window._logFileHandle = null;
+        updateLogFileControls();
+        alert('Log file selection has been reset.');
+      }
+    }
+
+    // --- Persistent log appending logic (Brave/Firefox: session log only, no download prompt) ---
+    async function appendLogPersistent(newLine) {
+      if (!newLine) return;
+      // Only use File System Access API if handle exists (Edge/Chrome)
+      if (window._logFileHandle) {
+        try {
+          let writable;
+          if (window._logFileHandle.createWritable.length > 0) {
+            writable = await window._logFileHandle.createWritable({keepExistingData:true});
+            await writable.seek((await window._logFileHandle.getFile()).size);
+            await writable.write(newLine + '\n');
+            await writable.close();
+          } else {
+            let oldText = '';
+            try {
+              const file = await window._logFileHandle.getFile();
+              oldText = await file.text();
+            } catch (e) { oldText = ''; }
+            const logText = oldText + (oldText && !oldText.endsWith('\n') ? '\n' : '') + newLine + '\n';
+            writable = await window._logFileHandle.createWritable();
+            await writable.write(logText);
+            await writable.close();
+          }
+        } catch (e) {
+          window._logFileHandle = null; // Reset handle if error (e.g. permission lost)
+          updateLogFileControls();
+        }
+      } else {
+        // Brave/Firefox: do not trigger download, just keep log in memory (user can download full log manually)
+        // No action needed here
+      }
+    }
+
+    document.getElementById('sensorForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const inputElem = document.getElementById('sensorId');
+      const input = inputElem.value.trim();
+      if (!SENSOR_NUMBER_PATTERN.test(input)) {
+        setResultMessage('Please enter a valid 5 or 6 digit sensor number.');
+        return;
+      }
+      const lookup = findSensor(input);
+      const timestamp = new Date().toISOString();
+      let logLine;
+
+      if (lookup.status === 'found') {
+        const isRepeat = foundSensors.has(lookup.sensorId);
+        foundSensors.add(lookup.sensorId);
+        renderSensorResult(lookup.sensorId, lookup.location);
+        logLine = `${timestamp}\t${lookup.sensorId}\t${lookup.location}`;
+        logLines.push(logLine);
+        updateStatus(isRepeat ? 'This sensor number has already been checked!' : null);
+      } else if (lookup.status === 'ambiguous') {
+        const matchIds = lookup.matches.map(match => match.sensorId).join(', ');
+        renderAmbiguousSensorResult(input, lookup.matches);
+        logLine = `${timestamp}\t${input}\tAMBIGUOUS (${matchIds})`;
+        logLines.push(logLine);
+        updateStatus();
+      } else {
+        setResultMessage(`Sensor number ${input} not found!`);
+        logLine = `${timestamp}\t${input}\tNOT FOUND`;
+        logLines.push(logLine);
+        updateStatus();
+      }
+
+      updateLogDownload();
+      updateCheckedSensors();
+      inputElem.blur();
+      await appendLogPersistent(logLine);
+    });
+
+    document.getElementById('boxFileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        boxSourceFileName = file.name;
+        updateBoxSortingData(parseBoxSensorNumbers(e.target.result));
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('boxSearchForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const inputElem = document.getElementById('boxSensorId');
+      const input = inputElem.value.trim();
+
+      if (!SENSOR_NUMBER_PATTERN.test(input)) {
+        setBoxSearchMessage('Please enter a valid 5 or 6 digit sensor number.');
+        return;
+      }
+
+      if (!boxSensorNumbers.length) {
+        setBoxSearchMessage('Load a sensor number list first.');
+        return;
+      }
+
+      const placement = findBoxPlacement(input);
+      if (!placement) {
+        setBoxSearchMessage(`Sensor number ${input} is not in the loaded box list.`);
+        return;
+      }
+
+      setBoxSearchMessage(
+        `Sensor ${placement.sensorId}: Box ${placement.box}, Row ${placement.row}, Position ${placement.position}.`,
+        false
+      );
+      inputElem.blur();
+    });
+
+    document.getElementById('clearSensorId').addEventListener('click', function() {
+      const inputElem = document.getElementById('sensorId');
+      inputElem.value = '';
+      inputElem.focus();
+    });
+
+    document.getElementById('clearBoxSensorId').addEventListener('click', function() {
+      const inputElem = document.getElementById('boxSensorId');
+      inputElem.value = '';
+      inputElem.focus();
+    });
+
+    document.getElementById('exportBoxLayout').addEventListener('click', exportBoxLayout);
+    document.getElementById('chooseLogFile').addEventListener('click', chooseLogFile);
+    document.getElementById('resetAppStorage').addEventListener('click', resetAppStorage);
+    document.getElementById('resetLogFileHandle').addEventListener('click', resetLogFileHandle);
+
+    function updateLogDownload() {
+      const logText = logLines.join('\n');
+      let logDiv = document.getElementById('logDownload');
+      logDiv.replaceChildren();
+      if (currentLogDownloadUrl) {
+        URL.revokeObjectURL(currentLogDownloadUrl);
+        currentLogDownloadUrl = null;
+      }
+      if (!logLines.length) return;
+
+      const blob = new Blob([logText], {type: "text/plain"});
+      currentLogDownloadUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = currentLogDownloadUrl;
+      link.download = 'sensor_log.txt';
+      link.textContent = 'Download session log';
+
+      const note = document.createElement('span');
+      note.style.fontSize = '0.92em';
+      note.textContent = 'Every search is logged in this file.';
+
+      logDiv.append(link, document.createElement('br'), note);
+    }
+
+    // Tab navigation logic
+    const tabSearch = document.getElementById('tabSearch');
+    const tabBoxes = document.getElementById('tabBoxes');
+    const tabTracks = document.getElementById('tabTracks');
+    const tabContentSearch = document.getElementById('tabContentSearch');
+    const tabContentBoxes = document.getElementById('tabContentBoxes');
+    const tabContentTracks = document.getElementById('tabContentTracks');
+
+    function activateTab(activeTab, activeContent) {
+      [tabSearch, tabBoxes, tabTracks].forEach(tab => tab.classList.remove('active'));
+      [tabContentSearch, tabContentBoxes, tabContentTracks].forEach(content => {
+        content.style.display = 'none';
+      });
+      activeTab.classList.add('active');
+      activeContent.style.display = '';
+    }
+
+    tabSearch.addEventListener('click', function() {
+      activateTab(tabSearch, tabContentSearch);
+    });
+    tabBoxes.addEventListener('click', function() {
+      activateTab(tabBoxes, tabContentBoxes);
+    });
+    tabTracks.addEventListener('click', function() {
+      activateTab(tabTracks, tabContentTracks);
+    });
+
+    // Track color config logic
+    let trackColors = loadTrackColors();
+    saveTrackColors();
+
+    function isDefaultTrack(trackName) {
+      return defaultTracks.some(def => def.name === String(trackName).toUpperCase());
+    }
+
+    function renderTrackList() {
+      const list = document.getElementById('trackList');
+      list.replaceChildren();
+      if (!trackColors.length) {
+        const emptyMessage = document.createElement('i');
+        emptyMessage.textContent = 'No tracks configured yet.';
+        list.append(emptyMessage);
+        return;
+      }
+      trackColors.forEach((track, index) => {
+        const row = document.createElement('div');
+        row.className = 'track-row';
+
+        const rowContent = document.createElement('div');
+        rowContent.className = 'track-row-content';
+
+        const swatch = document.createElement('span');
+        swatch.className = 'track-color';
+        swatch.style.background = track.color;
+
+        const name = document.createElement('b');
+        name.textContent = track.name;
+
+        const color = document.createElement('span');
+        color.style.color = '#888';
+        color.style.fontSize = '0.97em';
+        color.textContent = track.color;
+
+        const removeButton = document.createElement('button');
+        removeButton.className = 'track-remove';
+        removeButton.textContent = isDefaultTrack(track.name) ? 'LOCKED' : 'REMOVE';
+        removeButton.disabled = isDefaultTrack(track.name);
+        removeButton.addEventListener('click', () => removeTrack(index));
+
+        rowContent.append(swatch, name, color);
+        row.append(rowContent, removeButton);
+        list.append(row);
+      });
+    }
+
+    document.getElementById('trackForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('trackName').value.trim();
+      const color = document.getElementById('trackColor').value;
+      if (!name) return;
+      // Check for duplicates (case-insensitive)
+      const idx = trackColors.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
+      if (idx >= 0) {
+        // If track already exists, only update color
+        trackColors[idx] = { name: trackColors[idx].name, color };
+      } else {
+        // Check: ensure no duplicate names exist (case-insensitive)
+        if (trackColors.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+          alert('Track with this name already exists!');
+          return;
+        }
+        trackColors.push({ name, color });
+      }
+      saveTrackColors();
+      renderTrackList();
+      updateCheckedSensors(); // update colors for already checked sensors
+      this.reset();
+    });
+
+    window.removeTrack = function(idx) {
+      const selectedTrack = trackColors[idx];
+      if (!selectedTrack) return;
+      if (isDefaultTrack(selectedTrack.name)) {
+        alert('Default tracks cannot be removed.');
+        return;
+      }
+      trackColors.splice(idx, 1);
+      saveTrackColors();
+      renderTrackList();
+      updateCheckedSensors(); // update colors for already checked sensors
+    }
+
+    renderTrackList();
+    updateLogFileControls();
+
+    // Initial status
+    updateStatus();
+    updateCheckedSensors();
+  </script>
+</body>
+</html>

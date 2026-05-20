@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+sensor_numbers_*.txt
+*_box_layout.txt
+sensor_box_layout.txt
+Inklinometers-test.txt
