@@ -40,6 +40,8 @@ All UI text, browser messages, documentation, code comments, script output, comm
 - Add operator notes to exported session logs.
 - Import and export track color settings.
 - Detect and report duplicate sensor numbers during TXT imports.
+- Manually build a sensor number TXT list on a phone.
+- Export the manual list with a date/time filename, creation time, and sensor count.
 
 ## Files
 
@@ -88,6 +90,40 @@ No server is required. All data is processed locally in the browser.
 Use **Outdoor mode** when bright field conditions require stronger contrast.
 
 Use **View: Auto** to let the app choose the layout from the browser width. Click the view button to cycle through **Auto**, **Wide**, and **Compact**. Wide mode is more comfortable on laptop browsers, while compact mode keeps the smartphone layout even in a larger window.
+
+## Manual Sensor List
+
+Use the **Manual List** tab when loose sensors have no source file yet and you need to type cleaned barcode numbers into a new TXT list from a phone.
+
+Workflow:
+
+1. Enter a 5- or 6-digit sensor number.
+2. Click **Add sensor** to append it to the editable list.
+3. Repeat until all visible sensor numbers are captured.
+4. Use **Remove last sensor** for quick correction, or edit the list directly.
+5. Use **Export TXT list** to download the list.
+
+Duplicate sensor numbers are not added through the input form. If the editable list contains duplicates or invalid values, the status shows how many values will be ignored during export.
+
+The export filename uses the current local date and time:
+
+```txt
+manual_sensors_20260520_083000.txt
+```
+
+The exported TXT includes metadata before the sensor numbers:
+
+```txt
+Manual Sensor List
+Created at: 2026-05-20T06:30:00.000Z
+Local time: 2026-05-20 08:30:00
+Total sensors: 3
+Duplicate sensors ignored: None
+
+151336
+97720
+12345
+```
 
 ## Box Sorting
 

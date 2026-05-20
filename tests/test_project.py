@@ -178,6 +178,35 @@ class BoxSortingFeatureTests(unittest.TestCase):
         self.assertIn("Duplicate sensors ignored", self.html)
 
 
+class ManualSensorListFeatureTests(unittest.TestCase):
+    def setUp(self):
+        self.html = read_text(APP_HTML)
+
+    def test_manual_list_tab_exists(self):
+        self.assertIn('id="tabManual"', self.html)
+        self.assertIn("Manual List", self.html)
+        self.assertIn('id="tabContentManual"', self.html)
+        self.assertIn('id="manualEntryForm"', self.html)
+        self.assertIn('id="manualSensorList"', self.html)
+        self.assertIn('id="exportManualSensorList"', self.html)
+
+    def test_manual_list_export_includes_metadata(self):
+        self.assertIn("function getManualSensorListFileName(exportedAt = new Date())", self.html)
+        self.assertIn("manual_sensors_${formatDateStamp(exportedAt)}.txt", self.html)
+        self.assertIn("function formatManualSensorList(numbers, exportedAt = new Date(), duplicateNumbers = [])", self.html)
+        self.assertIn("Manual Sensor List", self.html)
+        self.assertIn("Created at: ${exportedAt.toISOString()}", self.html)
+        self.assertIn("Local time: ${formatLocalDateTime(exportedAt)}", self.html)
+        self.assertIn("Total sensors: ${numbers.length}", self.html)
+
+    def test_manual_list_validates_and_deduplicates_numbers(self):
+        self.assertIn("function parseManualSensorList(text)", self.html)
+        self.assertIn("SENSOR_NUMBER_PATTERN.test(token)", self.html)
+        self.assertIn("duplicateNumbers.push(token)", self.html)
+        self.assertIn("Sensor ${sensorId} is already in the manual list.", self.html)
+        self.assertIn("removeLastManualSensor", self.html)
+
+
 class DocumentationTests(unittest.TestCase):
     def test_audit_is_fully_closed(self):
         audit = read_text(AUDIT)
@@ -214,6 +243,17 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("_box_layout.txt", readme)
         self.assertIn("sensor_numbers_20260520_073634_box_layout.txt", readme)
         self.assertIn("sensor_numbers_20260520_073634_box_labels.txt", readme)
+
+    def test_readme_documents_manual_sensor_list(self):
+        readme = read_text(README)
+
+        self.assertIn("Manual Sensor List", readme)
+        self.assertIn("Manual List", readme)
+        self.assertIn("Export TXT list", readme)
+        self.assertIn("manual_sensors_20260520_083000.txt", readme)
+        self.assertIn("Total sensors: 3", readme)
+        self.assertIn("Created at:", readme)
+        self.assertIn("Local time:", readme)
 
     def test_readme_documents_field_workflow_enhancements(self):
         readme = read_text(README)

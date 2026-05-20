@@ -61,7 +61,8 @@
     body.outdoor-mode #logFileStatus,
     body.outdoor-mode #boxSortStatus,
     body.outdoor-mode #boxSearchResult,
-    body.outdoor-mode #boxPreview {
+    body.outdoor-mode #boxPreview,
+    body.outdoor-mode #manualEntryStatus {
       color: #ffffff;
     }
     /* Shared mobile-first layout. */
@@ -101,7 +102,7 @@
       font-weight: 500;
       color: var(--primary);
     }
-    input[type="number"], input[type="file"], textarea {
+    input[type="number"], input[type="text"], input[type="file"], textarea {
       font-size: 1em;
       padding: 0.5em 0.7em;
       border: 1.2px solid var(--accent);
@@ -119,7 +120,8 @@
       resize: vertical;
       font-family: inherit;
     }
-    input[type="number"]:focus {
+    input[type="number"]:focus,
+    input[type="text"]:focus {
       border: 1.5px solid var(--success);
     }
     input[type="file"] {
@@ -242,7 +244,8 @@
     }
     #boxSortStatus,
     #boxSearchResult,
-    #boxPreview {
+    #boxPreview,
+    #manualEntryStatus {
       margin-top: 0.7em;
       text-align: center;
       font-size: 0.97em;
@@ -272,6 +275,7 @@
     }
     .tab-nav {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.2em !important;
       margin-bottom: 0.7em !important;
       width: 100%;
@@ -288,6 +292,7 @@
       margin: 0;
       padding: 0.5em 0;
       transition: background .18s, color .18s;
+      min-width: 8em;
     }
     .tab-btn.active {
       background: #fff;
@@ -435,6 +440,7 @@
       #boxSortStatus,
       #boxSearchResult,
       #boxPreview,
+      #manualEntryStatus,
       #checkedSensors {
         font-size: 1.02em;
       }
@@ -455,7 +461,7 @@
       #logDownload { font-size: 0.9em; }
       .found { font-size: 0.97em; }
       #checkedSensors { font-size: 0.93em; }
-      #boxSortStatus, #boxSearchResult, #boxPreview { font-size: 0.93em; }
+      #boxSortStatus, #boxSearchResult, #boxPreview, #manualEntryStatus { font-size: 0.93em; }
       .track-row { font-size: 0.93em; }
       #trackForm button[type="submit"] { min-width: 3.5em; }
       #trackColor, #trackName { min-width: 3.5em; }
@@ -474,6 +480,7 @@
     <div class="tab-nav">
       <button type="button" id="tabSearch" class="tab-btn active" style="flex:1;">Sensor Search</button>
       <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
+      <button type="button" id="tabManual" class="tab-btn" style="flex:1;">Manual List</button>
       <button type="button" id="tabTracks" class="tab-btn" style="flex:1;">Track Colors</button>
     </div>
     <!-- Sensor search workflow: import the map, search IDs, and export/search logs. -->
@@ -518,6 +525,26 @@
         <button type="button" id="exportBoxLayout" disabled>Export box layout</button>
         <button type="button" id="exportBoxLabels" disabled>Export box labels</button>
         <div id="boxPreview"></div>
+      </div>
+    </div>
+    <!-- Manual list workflow: type loose sensor IDs in the field and export a dated TXT file. -->
+    <div id="tabContentManual" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Manual Sensor List</h3>
+        <form id="manualEntryForm" autocomplete="off">
+          <label for="manualSensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="text" id="manualSensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearManualSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Add sensor</button>
+        </form>
+        <label for="manualSensorList">Sensor numbers to export:</label>
+        <textarea id="manualSensorList" placeholder="Added sensor numbers appear here, one per line"></textarea>
+        <div id="manualEntryStatus"></div>
+        <button type="button" id="removeLastManualSensor" disabled>Remove last sensor</button>
+        <button type="button" id="clearManualSensorList" class="danger" disabled>Clear list</button>
+        <button type="button" id="exportManualSensorList" disabled>Export TXT list</button>
       </div>
     </div>
     <!-- Track color workflow: configure, import, and export location color rules. -->
@@ -572,6 +599,7 @@
     let boxDuplicateNumbers = [];
     let currentBoxExportUrl = null;
     let currentBoxLabelsUrl = null;
+    let currentManualExportUrl = null;
 
     // Storage keys and box layout constants. These values define the exported file format.
     const TRACK_COLORS_STORAGE_KEY = 'trackColors';
@@ -993,6 +1021,42 @@
       return `${getFileBaseName(sourceFileName)}_${BOX_LABELS_SUFFIX}.txt`;
     }
 
+    function padDatePart(value) {
+      return String(value).padStart(2, '0');
+    }
+
+    function formatLocalDateTime(date) {
+      return [
+        date.getFullYear(),
+        '-',
+        padDatePart(date.getMonth() + 1),
+        '-',
+        padDatePart(date.getDate()),
+        ' ',
+        padDatePart(date.getHours()),
+        ':',
+        padDatePart(date.getMinutes()),
+        ':',
+        padDatePart(date.getSeconds())
+      ].join('');
+    }
+
+    function formatDateStamp(date) {
+      return [
+        date.getFullYear(),
+        padDatePart(date.getMonth() + 1),
+        padDatePart(date.getDate()),
+        '_',
+        padDatePart(date.getHours()),
+        padDatePart(date.getMinutes()),
+        padDatePart(date.getSeconds())
+      ].join('');
+    }
+
+    function getManualSensorListFileName(exportedAt = new Date()) {
+      return `manual_sensors_${formatDateStamp(exportedAt)}.txt`;
+    }
+
     function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = []) {
       // Human-readable export for placing sensors into boxes and rows.
       const exportTimestamp = exportedAt.toISOString();
@@ -1027,6 +1091,48 @@
 
         lines.push('');
       }
+
+      return lines.join('\n');
+    }
+
+    function parseManualSensorList(text) {
+      // Keep typed order for field work, while reporting values that cannot be exported.
+      const tokens = text.split(/\s+/).map(token => token.trim()).filter(Boolean);
+      const numbers = [];
+      const seenNumbers = new Set();
+      const duplicateNumbers = [];
+      let invalidCount = 0;
+      let duplicateCount = 0;
+
+      for (const token of tokens) {
+        if (!SENSOR_NUMBER_PATTERN.test(token)) {
+          invalidCount += 1;
+          continue;
+        }
+
+        if (seenNumbers.has(token)) {
+          duplicateCount += 1;
+          duplicateNumbers.push(token);
+          continue;
+        }
+
+        seenNumbers.add(token);
+        numbers.push(token);
+      }
+
+      return { numbers, duplicateNumbers, invalidCount, duplicateCount };
+    }
+
+    function formatManualSensorList(numbers, exportedAt = new Date(), duplicateNumbers = []) {
+      const lines = [
+        'Manual Sensor List',
+        `Created at: ${exportedAt.toISOString()}`,
+        `Local time: ${formatLocalDateTime(exportedAt)}`,
+        `Total sensors: ${numbers.length}`,
+        `Duplicate sensors ignored: ${duplicateNumbers.length ? duplicateNumbers.join(', ') : 'None'}`,
+        '',
+        ...numbers
+      ];
 
       return lines.join('\n');
     }
@@ -1147,6 +1253,83 @@
       link.remove();
     }
 
+    function getManualSensorListText() {
+      return document.getElementById('manualSensorList').value;
+    }
+
+    function setManualSensorList(numbers) {
+      document.getElementById('manualSensorList').value = numbers.join('\n');
+      updateManualEntryStatus();
+    }
+
+    function updateManualEntryStatus() {
+      const parsed = parseManualSensorList(getManualSensorListText());
+      const status = document.getElementById('manualEntryStatus');
+      const exportButton = document.getElementById('exportManualSensorList');
+      const clearButton = document.getElementById('clearManualSensorList');
+      const removeLastButton = document.getElementById('removeLastManualSensor');
+      const hasText = getManualSensorListText().trim().length > 0;
+      const duplicateText = parsed.duplicateCount
+        ? ` Duplicate value(s): ${parsed.duplicateNumbers.join(', ')}.`
+        : '';
+
+      status.textContent =
+        `Ready to export: ${parsed.numbers.length} sensor(s). ` +
+        `Ignored ${parsed.invalidCount} invalid value(s) and ${parsed.duplicateCount} duplicate value(s).` +
+        duplicateText;
+      exportButton.disabled = parsed.numbers.length === 0;
+      clearButton.disabled = !hasText;
+      removeLastButton.disabled = parsed.numbers.length === 0;
+    }
+
+    function addManualSensor(sensorId) {
+      const parsed = parseManualSensorList(getManualSensorListText());
+      if (parsed.numbers.includes(sensorId)) {
+        document.getElementById('manualEntryStatus').textContent = `Sensor ${sensorId} is already in the manual list.`;
+        return false;
+      }
+
+      parsed.numbers.push(sensorId);
+      setManualSensorList(parsed.numbers);
+      return true;
+    }
+
+    function removeLastManualSensor() {
+      const parsed = parseManualSensorList(getManualSensorListText());
+      if (!parsed.numbers.length) return;
+
+      parsed.numbers.pop();
+      setManualSensorList(parsed.numbers);
+    }
+
+    function clearManualSensorList() {
+      if (!getManualSensorListText().trim()) return;
+      if (!confirm('This will clear the manual sensor list.\nContinue?')) return;
+
+      setManualSensorList([]);
+    }
+
+    function exportManualSensorList() {
+      const parsed = parseManualSensorList(getManualSensorListText());
+      if (!parsed.numbers.length) return;
+
+      if (currentManualExportUrl) {
+        URL.revokeObjectURL(currentManualExportUrl);
+        currentManualExportUrl = null;
+      }
+
+      const exportedAt = new Date();
+      const blob = new Blob([formatManualSensorList(parsed.numbers, exportedAt, parsed.duplicateNumbers)], { type: 'text/plain' });
+      currentManualExportUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = currentManualExportUrl;
+      link.download = getManualSensorListFileName(exportedAt);
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
+
     function getOperatorNotes() {
       // Notes are included in downloaded session logs, not in persistent append-only lines.
       return document.getElementById('operatorNotes').value.trim();
@@ -1234,6 +1417,10 @@
         if (currentBoxLabelsUrl) {
           URL.revokeObjectURL(currentBoxLabelsUrl);
           currentBoxLabelsUrl = null;
+        }
+        if (currentManualExportUrl) {
+          URL.revokeObjectURL(currentManualExportUrl);
+          currentManualExportUrl = null;
         }
         alert('All app data and settings have been reset. The page will reload.');
         location.reload();
@@ -1358,6 +1545,21 @@
       inputElem.blur();
     });
 
+    document.getElementById('manualEntryForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const inputElem = document.getElementById('manualSensorId');
+      const input = inputElem.value.trim();
+      if (!SENSOR_NUMBER_PATTERN.test(input)) {
+        document.getElementById('manualEntryStatus').textContent = 'Please enter a valid 5 or 6 digit sensor number.';
+        return;
+      }
+
+      if (addManualSensor(input)) {
+        inputElem.value = '';
+      }
+      inputElem.focus();
+    });
+
     document.getElementById('clearSensorId').addEventListener('click', function() {
       const inputElem = document.getElementById('sensorId');
       inputElem.value = '';
@@ -1369,6 +1571,17 @@
       inputElem.value = '';
       inputElem.focus();
     });
+
+    document.getElementById('clearManualSensorId').addEventListener('click', function() {
+      const inputElem = document.getElementById('manualSensorId');
+      inputElem.value = '';
+      inputElem.focus();
+    });
+
+    document.getElementById('manualSensorList').addEventListener('input', updateManualEntryStatus);
+    document.getElementById('removeLastManualSensor').addEventListener('click', removeLastManualSensor);
+    document.getElementById('clearManualSensorList').addEventListener('click', clearManualSensorList);
+    document.getElementById('exportManualSensorList').addEventListener('click', exportManualSensorList);
 
     document.getElementById('operatorNotes').addEventListener('input', function() {
       if (logLines.length) updateLogDownload();
@@ -1411,14 +1624,16 @@
     // Tab navigation.
     const tabSearch = document.getElementById('tabSearch');
     const tabBoxes = document.getElementById('tabBoxes');
+    const tabManual = document.getElementById('tabManual');
     const tabTracks = document.getElementById('tabTracks');
     const tabContentSearch = document.getElementById('tabContentSearch');
     const tabContentBoxes = document.getElementById('tabContentBoxes');
+    const tabContentManual = document.getElementById('tabContentManual');
     const tabContentTracks = document.getElementById('tabContentTracks');
 
     function activateTab(activeTab, activeContent) {
-      [tabSearch, tabBoxes, tabTracks].forEach(tab => tab.classList.remove('active'));
-      [tabContentSearch, tabContentBoxes, tabContentTracks].forEach(content => {
+      [tabSearch, tabBoxes, tabManual, tabTracks].forEach(tab => tab.classList.remove('active'));
+      [tabContentSearch, tabContentBoxes, tabContentManual, tabContentTracks].forEach(content => {
         content.style.display = 'none';
       });
       activeTab.classList.add('active');
@@ -1430,6 +1645,9 @@
     });
     tabBoxes.addEventListener('click', function() {
       activateTab(tabBoxes, tabContentBoxes);
+    });
+    tabManual.addEventListener('click', function() {
+      activateTab(tabManual, tabContentManual);
     });
     tabTracks.addEventListener('click', function() {
       activateTab(tabTracks, tabContentTracks);
@@ -1542,6 +1760,7 @@
     // Initial render.
     updateStatus();
     updateCheckedSensors();
+    updateManualEntryStatus();
   </script>
 </body>
 </html>
