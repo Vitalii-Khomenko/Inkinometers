@@ -5,6 +5,7 @@
   <title>Sensor Location Finder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <style>
+    /* Design tokens shared by all tabs. */
     :root {
       --primary: #222831;
       --accent: #00adb5;
@@ -26,6 +27,7 @@
       min-height: 100vh;
       font-size: 16px;
     }
+    /* High-contrast field mode for outdoor phone use. */
     body.outdoor-mode {
       --primary: #ffffff;
       --accent: #ffea00;
@@ -61,6 +63,7 @@
     body.outdoor-mode #boxPreview {
       color: #ffffff;
     }
+    /* Shared mobile-first layout. */
     main {
       width: 100vw;
       min-height: 100vh;
@@ -236,6 +239,7 @@
       overflow-x: auto;
     }
     .box-preview-block {
+      /* Preserve exported TXT spacing in the on-screen preview. */
       background: #f7f7fa;
       border: 1px solid #d8eef0;
       border-radius: 6px;
@@ -407,6 +411,7 @@
   </style>
 </head>
 <body>
+  <!-- Main app shell. All workflows stay in this file for offline phone use. -->
   <main>
     <h2>Sensor Location Finder</h2>
     <button type="button" id="outdoorModeToggle" style="max-width:370px;">Outdoor mode</button>
@@ -415,6 +420,7 @@
       <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
       <button type="button" id="tabTracks" class="tab-btn" style="flex:1;">Track Colors</button>
     </div>
+    <!-- Sensor search workflow: import the map, search IDs, and export/search logs. -->
     <div id="tabContentSearch">
       <div class="card">
         <label for="fileInput">Load sensor mapping (txt, e.g. 151336 U2 1 MQ001 per line):</label>
@@ -437,6 +443,7 @@
       </div>
       <div id="logDownload"></div>
     </div>
+    <!-- Box sorting workflow: import chaotic IDs, deduplicate, sort, and export layouts. -->
     <div id="tabContentBoxes" style="display:none;">
       <div class="card">
         <h3 style="margin-top:0;">Box Sorting</h3>
@@ -457,6 +464,7 @@
         <div id="boxPreview"></div>
       </div>
     </div>
+    <!-- Track color workflow: configure, import, and export location color rules. -->
     <div id="tabContentTracks" style="display:none;">
       <div class="card">
         <h3 style="margin-top:0;">Track Color Settings</h3>
@@ -490,7 +498,7 @@
     </div>
   </main>
   <script>
-    // Default mapping (use your real data here)
+    // Default mapping used before an operator imports the real sensor map.
     let sensorLocations = {
       "151336": "U2 1 MQ001",
       "97720": "U1 2 MQ014",
@@ -498,6 +506,7 @@
       "65432": "N2 4 MQ003"
     };
 
+    // Runtime state shared between tabs. Keep it in memory so the app stays single-file.
     let totalSensors = Object.keys(sensorLocations).length;
     const foundSensors = new Set();
     let logLines = [];
@@ -508,6 +517,7 @@
     let currentBoxExportUrl = null;
     let currentBoxLabelsUrl = null;
 
+    // Storage keys and box layout constants. These values define the exported file format.
     const TRACK_COLORS_STORAGE_KEY = 'trackColors';
     const OUTDOOR_MODE_STORAGE_KEY = 'outdoorMode';
     const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -524,8 +534,9 @@
       { name: 'N2', color: '#ffd600' }
     ];
 
-    // Shared UI helpers
+    // Shared UI helpers used by multiple tabs.
     function getContrastColor(bg) {
+      // Choose readable text for colored badges in both standard and outdoor modes.
       if (!bg) return '#fff';
       const c = bg.charAt(0) === '#' ? bg.substring(1, 7) : bg;
       const r = parseInt(c.substring(0, 2), 16);
@@ -555,6 +566,7 @@
     }
 
     function isPersistentLogSupported() {
+      // The File System Access API is Chromium-only and not reliable in Brave/Firefox here.
       const isFirefox = navigator.userAgent.includes('Firefox');
       const isBrave = typeof navigator.brave !== 'undefined';
       return Boolean(window.showSaveFilePicker && !isFirefox && !isBrave);
@@ -577,6 +589,7 @@
     }
 
     function setOutdoorMode(enabled) {
+      // Outdoor mode is saved locally because field work can move between sessions.
       document.body.classList.toggle('outdoor-mode', enabled);
       localStorage.setItem(OUTDOOR_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
       document.getElementById('outdoorModeToggle').textContent = enabled ? 'Standard mode' : 'Outdoor mode';
@@ -590,7 +603,7 @@
       setOutdoorMode(!document.body.classList.contains('outdoor-mode'));
     }
 
-    // Track color storage
+    // Track color storage and import/export helpers.
     function saveTrackColors() {
       localStorage.setItem(TRACK_COLORS_STORAGE_KEY, JSON.stringify(trackColors));
     }
@@ -606,6 +619,7 @@
     }
 
     function loadTrackColors() {
+      // Normalize saved settings and repair invalid localStorage data automatically.
       let parsed = [];
       try {
         parsed = JSON.parse(localStorage.getItem(TRACK_COLORS_STORAGE_KEY) || '[]');
@@ -645,6 +659,7 @@
     }
 
     function parseTrackColorImport(text) {
+      // Validate imported settings through the same normalization path used at startup.
       const parsed = JSON.parse(text);
       const importedEntries = Array.isArray(parsed) ? parsed : parsed.trackColors;
       if (!Array.isArray(importedEntries)) {
@@ -680,7 +695,7 @@
       URL.revokeObjectURL(url);
     }
 
-    // Status rendering
+    // Main status rendering for checked sensor progress.
     function updateStatus(message) {
       const statusDiv = document.getElementById('status');
       statusDiv.replaceChildren(document.createTextNode(`Processed: ${foundSensors.size} / ${totalSensors} sensors`));
@@ -694,15 +709,16 @@
       }
     }
 
-    // Sensor mapping parsing
+    // Sensor mapping parsing.
     function parseSensorFile(text) {
+      // Expected input: sensor number first, location fields after it. Duplicate IDs are ignored.
       const lines = text.split(/\r?\n/);
       const mapping = {};
       const duplicateNumbers = [];
       for (let line of lines) {
         line = line.trim();
         if (!line) continue;
-        // Prefer tab split, fallback to spaces
+        // Prefer tab split, then fall back to whitespace-separated text files.
         let parts = line.split('\t');
         if (parts.length < 2) {
           parts = line.split(/\s{2,}|\s+/);
@@ -727,12 +743,12 @@
       reader.onload = async function(e) {
         const parsedFile = parseSensorFile(e.target.result);
         const mapping = parsedFile.mapping;
-        // Collect all tracks from the second column for all rows (case-insensitive, no duplicates)
+        // Collect all track names from imported locations and warn if defaults are missing.
         const allTrackNames = Array.from(new Set(Object.entries(mapping)
           .map(([num, location]) => {
-            // Restore original line: number + location
+            // Rebuild the row so existing whitespace variations do not matter.
             const line = num + ' ' + location;
-            // Split by spaces and tabs
+            // Split by spaces and tabs to inspect the first location token as the track name.
             let parts = line.split(/\s+|\t/).filter(Boolean);
             return (parts[1] || '').toUpperCase();
           })
@@ -767,8 +783,9 @@
       reader.readAsText(file);
     });
 
-    // Sensor lookup
+    // Sensor lookup.
     function findSensor(sensorNumber) {
+      // Exact matches win. Short suffix matches are allowed only when they are unambiguous.
       const numStr = String(sensorNumber).trim();
       if (Object.prototype.hasOwnProperty.call(sensorLocations, numStr)) {
         return {
@@ -809,10 +826,10 @@
       };
     }
 
-    // Result rendering
+    // Result rendering.
     function getTrackColorByLocation(location) {
       if (!location || !trackColors.length) return null;
-      // Try to find a track name match among all words in location
+      // Try to match any location token against configured track color names.
       const parts = location.trim().split(/\s+/);
       for (const t of trackColors) {
         for (let i = 0; i < parts.length; i++) {
@@ -834,8 +851,9 @@
       setResultMessage(`Sensor number ${input} is ambiguous. Matches: ${matchList}.`);
     }
 
-    // Box sorting
+    // Box sorting.
     function parseBoxSensorNumbers(text) {
+      // Import raw chaotic numbers, keep only valid 5/6 digit IDs, remove duplicates, and sort.
       const tokens = text.split(/\s+/).map(token => token.trim()).filter(Boolean);
       const uniqueNumbers = new Set();
       const duplicateNumbers = [];
@@ -862,6 +880,7 @@
     }
 
     function getBoxPositionByIndex(index) {
+      // Convert the sorted list index into the physical box, row, and row position.
       return {
         box: Math.floor(index / BOX_SIZE) + 1,
         row: Math.floor((index % BOX_SIZE) / BOX_ROW_SIZE) + 1,
@@ -882,6 +901,7 @@
     }
 
     function getFileBaseName(fileName) {
+      // Exported files keep the source file name and add the smallest useful suffix.
       const trimmedName = String(fileName || '').trim();
       const lastDotIndex = trimmedName.lastIndexOf('.');
       if (lastDotIndex <= 0) return trimmedName || 'sensors';
@@ -898,6 +918,7 @@
     }
 
     function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = []) {
+      // Human-readable export for placing sensors into boxes and rows.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
       const lines = [
@@ -935,6 +956,7 @@
     }
 
     function formatBoxLabels(numbers, sourceFileName = '', exportedAt = new Date()) {
+      // Compact printable labels for physical boxes.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
       const lines = [
@@ -993,6 +1015,7 @@
     }
 
     function updateBoxSortingData(parsed) {
+      // Replace the active box plan with sanitized unique sensor numbers.
       boxSensorNumbers = parsed.numbers;
       boxDuplicateNumbers = parsed.duplicateNumbers;
       updateBoxExportButton();
@@ -1049,10 +1072,12 @@
     }
 
     function getOperatorNotes() {
+      // Notes are included in downloaded session logs, not in persistent append-only lines.
       return document.getElementById('operatorNotes').value.trim();
     }
 
     function buildSessionLogText() {
+      // Full session log export with metadata and all searches from the current browser session.
       const lines = [
         'Sensor Search Log',
         `Exported at: ${new Date().toISOString()}`,
@@ -1091,8 +1116,9 @@
       }
     }
 
-    // Persistent logging
+    // Persistent logging.
     async function chooseLogFile() {
+      // Lets supported browsers append search lines directly to a user-selected TXT file.
       if (!isPersistentLogSupported()) {
         updateLogFileControls();
         return;
@@ -1143,10 +1169,9 @@
       }
     }
 
-    // --- Persistent log appending logic (Brave/Firefox: session log only, no download prompt) ---
+    // Append one search line to the selected persistent log when the browser supports it.
     async function appendLogPersistent(newLine) {
       if (!newLine) return;
-      // Only use File System Access API if handle exists (Edge/Chrome)
       if (window._logFileHandle) {
         try {
           let writable;
@@ -1167,15 +1192,16 @@
             await writable.close();
           }
         } catch (e) {
-          window._logFileHandle = null; // Reset handle if error (e.g. permission lost)
+          // Drop the handle if permission was revoked or the file became unavailable.
+          window._logFileHandle = null;
           updateLogFileControls();
         }
       } else {
-        // Brave/Firefox: do not trigger download, just keep log in memory (user can download full log manually)
-        // No action needed here
+        // Unsupported browsers keep the session log in memory for manual download.
       }
     }
 
+    // Event wiring for user workflows.
     document.getElementById('sensorForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const inputElem = document.getElementById('sensorId');
@@ -1278,6 +1304,7 @@
     document.getElementById('resetLogFileHandle').addEventListener('click', resetLogFileHandle);
 
     function updateLogDownload() {
+      // Build a fresh object URL each time so notes and recent searches are included.
       const logText = buildSessionLogText();
       let logDiv = document.getElementById('logDownload');
       logDiv.replaceChildren();
@@ -1302,7 +1329,7 @@
       logDiv.append(link, document.createElement('br'), note);
     }
 
-    // Tab navigation logic
+    // Tab navigation.
     const tabSearch = document.getElementById('tabSearch');
     const tabBoxes = document.getElementById('tabBoxes');
     const tabTracks = document.getElementById('tabTracks');
@@ -1329,7 +1356,7 @@
       activateTab(tabTracks, tabContentTracks);
     });
 
-    // Track color config logic
+    // Track color configuration.
     let trackColors = loadTrackColors();
     saveTrackColors();
 
@@ -1382,13 +1409,13 @@
       const name = document.getElementById('trackName').value.trim();
       const color = document.getElementById('trackColor').value;
       if (!name) return;
-      // Check for duplicates (case-insensitive)
+      // Update existing track names case-insensitively instead of creating duplicates.
       const idx = trackColors.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
       if (idx >= 0) {
-        // If track already exists, only update color
+        // If the track already exists, keep its display name and update only the color.
         trackColors[idx] = { name: trackColors[idx].name, color };
       } else {
-        // Check: ensure no duplicate names exist (case-insensitive)
+        // Keep a defensive duplicate check before adding custom tracks.
         if (trackColors.some(t => t.name.toLowerCase() === name.toLowerCase())) {
           alert('Track with this name already exists!');
           return;
@@ -1397,7 +1424,7 @@
       }
       saveTrackColors();
       renderTrackList();
-      updateCheckedSensors(); // update colors for already checked sensors
+      updateCheckedSensors(); // Refresh colors for already checked sensors.
       this.reset();
     });
 
@@ -1434,14 +1461,14 @@
       trackColors.splice(idx, 1);
       saveTrackColors();
       renderTrackList();
-      updateCheckedSensors(); // update colors for already checked sensors
+      updateCheckedSensors(); // Refresh colors for already checked sensors.
     }
 
     renderTrackList();
     updateLogFileControls();
     loadOutdoorMode();
 
-    // Initial status
+    // Initial render.
     updateStatus();
     updateCheckedSensors();
   </script>
