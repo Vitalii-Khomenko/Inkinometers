@@ -15,6 +15,7 @@ The target use case is smartphone operation without installation, a server, or b
 - Added optional import/export for track color settings.
 - Added a printable box label export format.
 - Added duplicate sensor reporting for imported mapping and box sorting TXT files.
+- Added automatic, wide, and compact view modes for smartphone and laptop browsers.
 
 ### 1. Mobile Operator Flow
 

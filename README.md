@@ -36,6 +36,7 @@ All UI text, browser messages, documentation, code comments, script output, comm
 - Export a formatted box layout using the imported file name plus `_box_layout.txt`.
 - Export printable box labels using the imported file name plus `_box_labels.txt`.
 - Use dark/high-contrast outdoor mode for bright field conditions.
+- Use automatic, wide, or compact view modes for smartphone and laptop browsers.
 - Add operator notes to exported session logs.
 - Import and export track color settings.
 - Detect and report duplicate sensor numbers during TXT imports.
@@ -83,6 +84,8 @@ The uploaded file must include the default track names `U1`, `U2`, `N1`, and `N2
 No server is required. All data is processed locally in the browser.
 
 Use **Outdoor mode** when bright field conditions require stronger contrast.
+
+Use **View: Auto** to let the app choose the layout from the browser width. Click the view button to cycle through **Auto**, **Wide**, and **Compact**. Wide mode is more comfortable on laptop browsers, while compact mode keeps the smartphone layout even in a larger window.
 
 ## Box Sorting
 

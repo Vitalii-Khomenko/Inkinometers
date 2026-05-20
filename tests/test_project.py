@@ -95,6 +95,15 @@ class AppAuditRegressionTests(unittest.TestCase):
         self.assertIn("function toggleOutdoorMode()", self.html)
         self.assertIn("OUTDOOR_MODE_STORAGE_KEY", self.html)
 
+    def test_responsive_view_modes_are_available(self):
+        self.assertIn('id="viewModeToggle"', self.html)
+        self.assertIn("VIEW_MODE_STORAGE_KEY", self.html)
+        self.assertIn("VIEW_MODES = ['auto', 'wide', 'compact']", self.html)
+        self.assertIn("function toggleViewMode()", self.html)
+        self.assertIn("body.view-wide", self.html)
+        self.assertIn("body.view-compact", self.html)
+        self.assertIn("@media (min-width: 760px)", self.html)
+
     def test_ambiguous_sensor_lookup_is_handled(self):
         self.assertIn("function findSensor(sensorNumber)", self.html)
         self.assertIn("status: 'ambiguous'", self.html)
@@ -200,6 +209,9 @@ class DocumentationTests(unittest.TestCase):
         readme = read_text(README)
 
         self.assertIn("Outdoor mode", readme)
+        self.assertIn("View: Auto", readme)
+        self.assertIn("Wide", readme)
+        self.assertIn("Compact", readme)
         self.assertIn("operator notes", readme)
         self.assertIn("Import track colors", readme)
         self.assertIn("Export track colors", readme)

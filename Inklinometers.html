@@ -13,6 +13,7 @@
       --error: #dc3545;
       --success: #00a86b;
       --radius: 10px;
+      --content-width: 370px;
       --u1: #2a65ea;
       --u2: #1ec47c;
       --n1: #ad3ee6;
@@ -71,7 +72,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 1.2em;
+      box-sizing: border-box;
+      padding: 1.2em 0.7em 2em;
     }
     h2 {
       font-size: 1.3em;
@@ -85,12 +87,13 @@
       border-radius: var(--radius);
       box-shadow: 0 2px 12px rgba(34,40,49,0.07);
       padding: 0.8em 0.7em 1.2em 0.7em;
-      width: 98vw;
-      max-width: 370px;
+      width: 100%;
+      max-width: var(--content-width);
       margin-bottom: 1.2em;
       display: flex;
       flex-direction: column;
       align-items: stretch;
+      box-sizing: border-box;
     }
     label {
       font-size: 0.98em;
@@ -170,6 +173,16 @@
       margin-bottom: 0.5em;
       width: 100%;
       box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+    }
+    .top-actions {
+      display: flex;
+      gap: 0.5em;
+      width: 100%;
+      max-width: var(--content-width);
+      margin-bottom: 0.6em;
+    }
+    .top-actions button {
+      flex: 1;
     }
     button:active {
       background: #019fa6;
@@ -258,8 +271,11 @@
       color: #555;
     }
     .tab-nav {
+      display: flex;
       gap: 0.2em !important;
       margin-bottom: 0.7em !important;
+      width: 100%;
+      max-width: var(--content-width);
     }
     .tab-btn {
       background: #e6f9fa;
@@ -282,7 +298,7 @@
     #tabContentTracks .card {
       margin-bottom: 0;
       padding: 1em 0.7em 1.2em 0.7em;
-      max-width: 370px;
+      max-width: var(--content-width);
       width: 100%;
     }
     #trackForm {
@@ -393,10 +409,47 @@
       vertical-align: middle;
       box-shadow: 0 1px 3px rgba(0,0,0,0.07);
     }
+    body.view-wide {
+      --content-width: 860px;
+    }
+    body.view-compact {
+      --content-width: 370px;
+    }
+    @media (min-width: 760px) {
+      body:not(.view-compact) {
+        --content-width: 760px;
+      }
+      body.view-wide {
+        --content-width: 860px;
+      }
+      h2 {
+        font-size: 1.55em;
+      }
+      .card {
+        padding: 1.2em 1.4em 1.5em;
+      }
+      .tab-btn {
+        padding: 0.65em 0;
+      }
+      #result,
+      #boxSortStatus,
+      #boxSearchResult,
+      #boxPreview,
+      #checkedSensors {
+        font-size: 1.02em;
+      }
+      .box-preview-block {
+        font-size: 0.98em;
+      }
+      #trackForm {
+        flex-wrap: nowrap;
+      }
+    }
     @media (max-width: 500px) {
       html, body { font-size: 14px; }
       h2 { font-size: 1.08em; }
       .card, #tabContentTracks .card { max-width: 99vw; padding: 0.5em 0.2em 0.7em 0.2em; }
+      .top-actions { flex-direction: column; gap: 0.2em; }
       #result { font-size: 0.97em; }
       #status { font-size: 0.93em; }
       #logDownload { font-size: 0.9em; }
@@ -414,8 +467,11 @@
   <!-- Main app shell. All workflows stay in this file for offline phone use. -->
   <main>
     <h2>Sensor Location Finder</h2>
-    <button type="button" id="outdoorModeToggle" style="max-width:370px;">Outdoor mode</button>
-    <div class="tab-nav" style="display:flex; gap:0.5em; margin-bottom:1.2em;">
+    <div class="top-actions">
+      <button type="button" id="outdoorModeToggle">Outdoor mode</button>
+      <button type="button" id="viewModeToggle">View: Auto</button>
+    </div>
+    <div class="tab-nav">
       <button type="button" id="tabSearch" class="tab-btn active" style="flex:1;">Sensor Search</button>
       <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
       <button type="button" id="tabTracks" class="tab-btn" style="flex:1;">Track Colors</button>
@@ -520,6 +576,7 @@
     // Storage keys and box layout constants. These values define the exported file format.
     const TRACK_COLORS_STORAGE_KEY = 'trackColors';
     const OUTDOOR_MODE_STORAGE_KEY = 'outdoorMode';
+    const VIEW_MODE_STORAGE_KEY = 'viewMode';
     const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
     const SENSOR_NUMBER_PATTERN = /^[0-9]{5,6}$/;
     const BOX_SIZE = 24;
@@ -527,6 +584,7 @@
     const BOX_ROW_COUNT = 3;
     const BOX_LAYOUT_SUFFIX = 'box_layout';
     const BOX_LABELS_SUFFIX = 'box_labels';
+    const VIEW_MODES = ['auto', 'wide', 'compact'];
     const defaultTracks = [
       { name: 'U1', color: '#2a65ea' },
       { name: 'U2', color: '#1ec47c' },
@@ -601,6 +659,26 @@
 
     function toggleOutdoorMode() {
       setOutdoorMode(!document.body.classList.contains('outdoor-mode'));
+    }
+
+    function setViewMode(mode) {
+      // Auto follows screen width, while wide and compact force a saved layout preference.
+      const normalizedMode = VIEW_MODES.includes(mode) ? mode : 'auto';
+      document.body.classList.toggle('view-wide', normalizedMode === 'wide');
+      document.body.classList.toggle('view-compact', normalizedMode === 'compact');
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, normalizedMode);
+      document.getElementById('viewModeToggle').textContent =
+        `View: ${normalizedMode.charAt(0).toUpperCase()}${normalizedMode.slice(1)}`;
+    }
+
+    function loadViewMode() {
+      setViewMode(localStorage.getItem(VIEW_MODE_STORAGE_KEY) || 'auto');
+    }
+
+    function toggleViewMode() {
+      const currentMode = localStorage.getItem(VIEW_MODE_STORAGE_KEY) || 'auto';
+      const nextMode = VIEW_MODES[(VIEW_MODES.indexOf(currentMode) + 1) % VIEW_MODES.length] || 'auto';
+      setViewMode(nextMode);
     }
 
     // Track color storage and import/export helpers.
@@ -1142,6 +1220,8 @@
     function resetAppStorage() {
       if (confirm('WARNING! This will erase this app data, track colors, and checked sensors.\nAre you sure you want to reset everything?')) {
         localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
+        localStorage.removeItem(OUTDOOR_MODE_STORAGE_KEY);
+        localStorage.removeItem(VIEW_MODE_STORAGE_KEY);
         window._logFileHandle = null;
         boxSourceFileName = '';
         boxDuplicateNumbers = [];
@@ -1299,6 +1379,7 @@
     document.getElementById('exportBoxLayout').addEventListener('click', exportBoxLayout);
     document.getElementById('exportBoxLabels').addEventListener('click', exportBoxLabels);
     document.getElementById('outdoorModeToggle').addEventListener('click', toggleOutdoorMode);
+    document.getElementById('viewModeToggle').addEventListener('click', toggleViewMode);
     document.getElementById('chooseLogFile').addEventListener('click', chooseLogFile);
     document.getElementById('resetAppStorage').addEventListener('click', resetAppStorage);
     document.getElementById('resetLogFileHandle').addEventListener('click', resetLogFileHandle);
@@ -1467,6 +1548,7 @@
     renderTrackList();
     updateLogFileControls();
     loadOutdoorMode();
+    loadViewMode();
 
     // Initial render.
     updateStatus();
