@@ -85,6 +85,14 @@ class AppAuditRegressionTests(unittest.TestCase):
         self.assertIn("isValidTrackColorEntry", self.html)
         self.assertIn("HEX_COLOR_PATTERN", self.html)
 
+    def test_default_track_colors_are_removable(self):
+        self.assertIn("const defaultTracks = [", self.html)
+        self.assertIn("storedValue === null", self.html)
+        self.assertIn("return [...defaultTracks]", self.html)
+        self.assertIn("removeButton.textContent = 'REMOVE'", self.html)
+        self.assertNotIn("LOCKED", self.html)
+        self.assertNotIn("Default tracks cannot be removed.", self.html)
+
     def test_log_download_urls_are_revoked(self):
         self.assertIn("currentLogDownloadUrl", self.html)
         self.assertIn("URL.revokeObjectURL(currentLogDownloadUrl)", self.html)
@@ -216,6 +224,8 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Import track colors", readme)
         self.assertIn("Export track colors", readme)
         self.assertIn("Duplicate sensor numbers", readme)
+        self.assertIn("Default tracks are starter settings", readme)
+        self.assertIn("they can also be removed", readme)
 
     def test_project_text_files_are_ascii_only(self):
         for path in [APP_HTML, README, AUDIT, AGENTS, IMPROVEMENTS, GENERATOR, Path(__file__)]:

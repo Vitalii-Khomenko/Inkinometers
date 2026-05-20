@@ -697,10 +697,15 @@
     }
 
     function loadTrackColors() {
-      // Normalize saved settings and repair invalid localStorage data automatically.
+      // Normalize saved settings. Defaults are used only before the operator saves changes.
+      const storedValue = localStorage.getItem(TRACK_COLORS_STORAGE_KEY);
+      if (storedValue === null) {
+        return [...defaultTracks];
+      }
+
       let parsed = [];
       try {
-        parsed = JSON.parse(localStorage.getItem(TRACK_COLORS_STORAGE_KEY) || '[]');
+        parsed = JSON.parse(storedValue);
       } catch (error) {
         localStorage.removeItem(TRACK_COLORS_STORAGE_KEY);
         return [...defaultTracks];
@@ -726,14 +731,7 @@
         });
       }
 
-      for (const defaultTrack of defaultTracks) {
-        if (!seenNames.has(defaultTrack.name)) {
-          seenNames.add(defaultTrack.name);
-          uniqueEntries.push(defaultTrack);
-        }
-      }
-
-      return uniqueEntries.length ? uniqueEntries : [...defaultTracks];
+      return uniqueEntries;
     }
 
     function parseTrackColorImport(text) {
@@ -1441,10 +1439,6 @@
     let trackColors = loadTrackColors();
     saveTrackColors();
 
-    function isDefaultTrack(trackName) {
-      return defaultTracks.some(def => def.name === String(trackName).toUpperCase());
-    }
-
     function renderTrackList() {
       const list = document.getElementById('trackList');
       list.replaceChildren();
@@ -1475,8 +1469,7 @@
 
         const removeButton = document.createElement('button');
         removeButton.className = 'track-remove';
-        removeButton.textContent = isDefaultTrack(track.name) ? 'LOCKED' : 'REMOVE';
-        removeButton.disabled = isDefaultTrack(track.name);
+        removeButton.textContent = 'REMOVE';
         removeButton.addEventListener('click', () => removeTrack(index));
 
         rowContent.append(swatch, name, color);
@@ -1535,10 +1528,6 @@
     function removeTrack(idx) {
       const selectedTrack = trackColors[idx];
       if (!selectedTrack) return;
-      if (isDefaultTrack(selectedTrack.name)) {
-        alert('Default tracks cannot be removed.');
-        return;
-      }
       trackColors.splice(idx, 1);
       saveTrackColors();
       renderTrackList();

@@ -153,7 +153,7 @@ N1
 N2
 ```
 
-Default tracks cannot be removed, but their colors can be updated. Custom tracks can be added or removed.
+Default tracks are starter settings. Their colors can be updated, and they can also be removed. The app uses the starter tracks again only when no saved track color settings exist.
 
 Track color settings are stored in browser `localStorage`.
 
