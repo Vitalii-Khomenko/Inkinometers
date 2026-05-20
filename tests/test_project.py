@@ -12,6 +12,8 @@ AUDIT = ROOT / "AUDIT.md"
 AGENTS = ROOT / "AGENTS.md"
 IMPROVEMENTS = ROOT / "IMPROVEMENTS.md"
 GENERATOR = ROOT / "generate_sensor_numbers.py"
+LICENSE = ROOT / "LICENSE"
+TRACK_COLORS = ROOT / "track_colors.json"
 
 
 def read_text(path):
@@ -226,9 +228,24 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Duplicate sensor numbers", readme)
         self.assertIn("Default tracks are starter settings", readme)
         self.assertIn("they can also be removed", readme)
+        self.assertIn("#2a65ea", readme)
+        self.assertIn("#1ec47c", readme)
+        self.assertIn("#ad3ee6", readme)
+        self.assertIn("#ffd600", readme)
+
+    def test_license_and_track_color_sample_are_documented(self):
+        readme = read_text(README)
+        license_text = read_text(LICENSE)
+        track_colors = read_text(TRACK_COLORS)
+
+        self.assertIn("MIT License", license_text)
+        self.assertIn("licensed under the MIT License", readme)
+        self.assertIn("track_colors.json", readme)
+        self.assertIn('"name": "U1"', track_colors)
+        self.assertIn('"color": "#2a65ea"', track_colors)
 
     def test_project_text_files_are_ascii_only(self):
-        for path in [APP_HTML, README, AUDIT, AGENTS, IMPROVEMENTS, GENERATOR, Path(__file__)]:
+        for path in [APP_HTML, README, AUDIT, AGENTS, IMPROVEMENTS, GENERATOR, LICENSE, TRACK_COLORS, Path(__file__)]:
             with self.subTest(path=path.name):
                 path.read_text(encoding="ascii")
 

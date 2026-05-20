@@ -50,9 +50,11 @@ All UI text, browser messages, documentation, code comments, script output, comm
 | `92007868-Inkl.txt` | Example sensor mapping file. |
 | `sensor_log.txt` | Example/generated search log file. |
 | `generate_sensor_numbers.py` | Utility script for generating random 5- and 6-digit sensor numbers. |
+| `track_colors.json` | Example/default track color export that can be imported into the app. |
 | `AUDIT.md` | Code audit findings and fix batches. |
 | `AGENTS.md` | Project instructions for future development work. |
 | `IMPROVEMENTS.md` | Smartphone-first improvement and optimization roadmap. |
+| `LICENSE` | MIT license for free use, modification, and distribution. |
 | `tests/test_project.py` | Python unittest coverage for generator behavior, app audit regressions, and documentation sync. |
 | `README.md` | Project documentation. |
 
@@ -146,18 +148,18 @@ Open the **Track Colors** tab to manage track color settings.
 
 Default tracks:
 
-```txt
-U1
-U2
-N1
-N2
-```
+| Track | Default color |
+| --- | --- |
+| `U1` | `#2a65ea` |
+| `U2` | `#1ec47c` |
+| `N1` | `#ad3ee6` |
+| `N2` | `#ffd600` |
 
 Default tracks are starter settings. Their colors can be updated, and they can also be removed. The app uses the starter tracks again only when no saved track color settings exist.
 
 Track color settings are stored in browser `localStorage`.
 
-Use **Export track colors** to download a JSON backup, and use **Import track colors** to restore or move settings to another device.
+Use **Export track colors** to download a JSON backup, and use **Import track colors** to restore or move settings to another device. The repository includes `track_colors.json` as an example import file.
 
 ## Logging
 
@@ -235,4 +237,4 @@ See `IMPROVEMENTS.md` for the smartphone-first optimization roadmap. The product
 
 ## License
 
-No license has been selected yet.
+This project is licensed under the MIT License. See `LICENSE` for details.
