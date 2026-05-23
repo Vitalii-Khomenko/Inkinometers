@@ -168,7 +168,7 @@ Workflow:
 8. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
 9. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
 
-The layout preview and export show each box in its vertical transport orientation. Rows are vertical columns and row numbers increase from left to right. Positions increase from top to bottom inside each row.
+The layout preview and export show each box in its vertical transport orientation. Rows are vertical columns and row numbers increase from left to right. Positions increase from top to bottom inside each row. The print layout places two boxes on each line to save screen space and paper.
 
 Example placement:
 
@@ -187,17 +187,18 @@ Exported at: 2026-05-20T07:45:00.000Z
 Total sensors: 24
 Box capacity: 24 sensors (3 rows x 8)
 Orientation: vertical box, rows increase from left to right
+Print layout: 2 boxes per line
 
-Box 1
-Position   Row 1    Row 2    Row 3
-       1   75856   97117  103349
-       2   93127   97252  103509
-       3   93157   97461  103519
-       4   93173   97798  103810
-       5   94632   99925  104001
-       6   95685  102301  104002
-       7   95700  102766  104003
-       8   96289  102796  104004
+Box 1                               Box 2
+Position   Row 1    Row 2    Row 3    Position   Row 1    Row 2    Row 3
+       1   75856   97117  103349           1  104221  105117  106349
+       2   93127   97252  103509           2  104227  105252  106509
+       3   93157   97461  103519           3  104257  105461  106519
+       4   93173   97798  103810           4  104273  105798  106810
+       5   94632   99925  104001           5  104632  105925  107001
+       6   95685  102301  104002           6  104685  106301  107002
+       7   95700  102766  104003           7  104700  106766  107003
+       8   96289  102796  104004           8  104789  106796  107004
 ```
 
 Invalid values and duplicate sensor numbers are ignored and counted in the status message.

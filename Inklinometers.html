@@ -1113,15 +1113,52 @@
       return `manual_sensors_${formatDateStamp(exportedAt)}.txt`;
     }
 
+    function formatSingleBoxBlock(numbers, boxIndex, layout, boxCapacity) {
+      const rowHeader = Array.from(
+        { length: layout.rowCount },
+        (_, rowIndex) => `Row ${rowIndex + 1}`.padStart(8, ' ')
+      ).join(' ');
+      const lines = [
+        `Box ${boxIndex + 1}`,
+        `Position${rowHeader}`
+      ];
+
+      for (let positionIndex = 0; positionIndex < layout.rowSize; positionIndex += 1) {
+        const positionNumbers = [];
+        for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
+          const sensorIndex = (boxIndex * boxCapacity) + (rowIndex * layout.rowSize) + positionIndex;
+          positionNumbers.push((numbers[sensorIndex] || '------').padStart(8, ' '));
+        }
+        lines.push(`${String(positionIndex + 1).padStart(8, ' ')}${positionNumbers.join(' ')}`);
+      }
+
+      return lines;
+    }
+
+    function appendBoxBlocksInPrintRows(lines, boxBlocks, boxesPerLine = 2) {
+      const gap = '    ';
+      for (let blockIndex = 0; blockIndex < boxBlocks.length; blockIndex += boxesPerLine) {
+        const rowBlocks = boxBlocks.slice(blockIndex, blockIndex + boxesPerLine);
+        const rowHeight = Math.max(...rowBlocks.map(block => block.length));
+        const blockWidth = Math.max(...rowBlocks.flat().map(line => line.length));
+
+        for (let lineIndex = 0; lineIndex < rowHeight; lineIndex += 1) {
+          const rowLine = rowBlocks
+            .map(block => (block[lineIndex] || '').padEnd(blockWidth, ' '))
+            .join(gap)
+            .trimEnd();
+          lines.push(rowLine);
+        }
+
+        lines.push('');
+      }
+    }
+
     function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [], layout = boxLayoutSettings) {
       // Human-readable export for vertical boxes: rows are columns that increase from left to right.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
       const boxCapacity = getBoxCapacity(layout);
-      const rowHeader = Array.from(
-        { length: layout.rowCount },
-        (_, rowIndex) => `Row ${rowIndex + 1}`.padStart(8, ' ')
-      ).join(' ');
       const lines = [
         'Sensor Box Layout',
         `Source file: ${sourceName}`,
@@ -1130,25 +1167,16 @@
         `Duplicate sensors ignored: ${duplicateNumbers.length ? duplicateNumbers.join(', ') : 'None'}`,
         `Box capacity: ${boxCapacity} sensors (${getBoxLayoutDescription(layout)})`,
         'Orientation: vertical box, rows increase from left to right',
+        'Print layout: 2 boxes per line',
         ''
       ];
 
       const boxCount = Math.ceil(numbers.length / boxCapacity);
-      for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
-        lines.push(`Box ${boxIndex + 1}`);
-        lines.push(`Position${rowHeader}`);
-
-        for (let positionIndex = 0; positionIndex < layout.rowSize; positionIndex += 1) {
-          const positionNumbers = [];
-          for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
-            const sensorIndex = (boxIndex * boxCapacity) + (rowIndex * layout.rowSize) + positionIndex;
-            positionNumbers.push((numbers[sensorIndex] || '------').padStart(8, ' '));
-          }
-          lines.push(`${String(positionIndex + 1).padStart(8, ' ')}${positionNumbers.join(' ')}`);
-        }
-
-        lines.push('');
-      }
+      const boxBlocks = Array.from(
+        { length: boxCount },
+        (_, boxIndex) => formatSingleBoxBlock(numbers, boxIndex, layout, boxCapacity)
+      );
+      appendBoxBlocksInPrintRows(lines, boxBlocks);
 
       return lines.join('\n');
     }
