@@ -486,13 +486,13 @@
     }
 
     function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [], layout = boxLayoutSettings) {
-      // Human-readable export for placing sensors into boxes and rows.
+      // Human-readable export for vertical boxes: rows are columns that increase from left to right.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
       const boxCapacity = getBoxCapacity(layout);
-      const positionHeader = Array.from(
-        { length: layout.rowSize },
-        (_, positionIndex) => String(positionIndex + 1).padStart(6, ' ')
+      const rowHeader = Array.from(
+        { length: layout.rowCount },
+        (_, rowIndex) => `Row ${rowIndex + 1}`.padStart(8, ' ')
       ).join(' ');
       const lines = [
         'Sensor Box Layout',
@@ -501,25 +501,22 @@
         `Total sensors: ${numbers.length}`,
         `Duplicate sensors ignored: ${duplicateNumbers.length ? duplicateNumbers.join(', ') : 'None'}`,
         `Box capacity: ${boxCapacity} sensors (${getBoxLayoutDescription(layout)})`,
+        'Orientation: vertical box, rows increase from left to right',
         ''
       ];
 
       const boxCount = Math.ceil(numbers.length / boxCapacity);
       for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
         lines.push(`Box ${boxIndex + 1}`);
-        lines.push(`Position:${positionHeader}`);
+        lines.push(`Position${rowHeader}`);
 
-        for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
-          const rowStart = (boxIndex * boxCapacity) + (rowIndex * layout.rowSize);
-          const rowNumbers = numbers
-            .slice(rowStart, rowStart + layout.rowSize)
-            .map(number => number.padStart(6, ' '));
-
-          while (rowNumbers.length < layout.rowSize) {
-            rowNumbers.push('------');
+        for (let positionIndex = 0; positionIndex < layout.rowSize; positionIndex += 1) {
+          const positionNumbers = [];
+          for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
+            const sensorIndex = (boxIndex * boxCapacity) + (rowIndex * layout.rowSize) + positionIndex;
+            positionNumbers.push((numbers[sensorIndex] || '------').padStart(8, ' '));
           }
-
-          lines.push(`Row ${rowIndex + 1}:   ${rowNumbers.join(' ')}`);
+          lines.push(`${String(positionIndex + 1).padStart(8, ' ')}${positionNumbers.join(' ')}`);
         }
 
         lines.push('');

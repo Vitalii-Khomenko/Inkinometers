@@ -168,6 +168,8 @@ Workflow:
 8. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
 9. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
 
+The layout preview and export show each box in its vertical transport orientation. Rows are vertical columns and row numbers increase from left to right. Positions increase from top to bottom inside each row.
+
 Example placement:
 
 ```txt
@@ -184,12 +186,18 @@ Source file: sensor_numbers_20260520_073634.txt
 Exported at: 2026-05-20T07:45:00.000Z
 Total sensors: 24
 Box capacity: 24 sensors (3 rows x 8)
+Orientation: vertical box, rows increase from left to right
 
 Box 1
-Position:     1      2      3      4      5      6      7      8
-Row 1:    75856  93127  93157  93173  94632  95685  95700  96289
-Row 2:    97117  97252  97461  97798  99925 102301 102766 102796
-Row 3:   103349 103509 103519 103810 104001 104002 104003 104004
+Position   Row 1    Row 2    Row 3
+       1   75856   97117  103349
+       2   93127   97252  103509
+       3   93157   97461  103519
+       4   93173   97798  103810
+       5   94632   99925  104001
+       6   95685  102301  104002
+       7   95700  102766  104003
+       8   96289  102796  104004
 ```
 
 Invalid values and duplicate sensor numbers are ignored and counted in the status message.
