@@ -168,7 +168,7 @@ Workflow:
 8. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
 9. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
 
-The layout preview and export show each box in its vertical transport orientation. Rows are vertical columns and row numbers increase from left to right. Positions increase from top to bottom inside each row. The print layout places two boxes on each line to save screen space and paper.
+The layout preview and export show each box in its vertical transport orientation. Rows are vertical columns and row numbers increase from left to right. Positions increase from top to bottom inside each row. The print layout places two boxes on each line to save screen space and paper. Browser printing uses A4 landscape so wider layouts stay on the page.
 
 Example placement:
 

@@ -261,13 +261,17 @@
     #boxPreview {
       text-align: left;
       overflow-x: auto;
+      padding-bottom: 0.2em;
     }
     .box-preview-block {
-      /* Preserve exported TXT spacing in the on-screen preview. */
+      /* Preserve exported TXT spacing and keep the background behind wide layouts. */
       background: #f7f7fa;
       border: 1px solid #d8eef0;
       border-radius: 6px;
+      box-sizing: border-box;
+      display: inline-block;
       margin: 0.7em 0;
+      min-width: 100%;
       padding: 0.6em;
       font-family: Consolas, "Courier New", monospace;
       font-size: 0.9em;
@@ -474,4 +478,45 @@
       #trackForm button[type="submit"] { min-width: 3.5em; }
       #trackColor, #trackName { min-width: 3.5em; }
       .track-color { width: 1.1em; height: 1.1em; }
+    }
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
+      html,
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 10pt;
+      }
+      main,
+      .card {
+        box-shadow: none !important;
+        max-width: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      .top-actions,
+      .tab-nav,
+      #boxFileInput,
+      .box-layout-controls,
+      #boxSearchForm,
+      #boxSearchResult,
+      #exportBoxLayout,
+      #exportBoxLabels {
+        display: none !important;
+      }
+      #boxPreview {
+        overflow: visible !important;
+      }
+      .box-preview-block {
+        border: 1px solid #999;
+        display: block;
+        font-size: 8pt;
+        margin: 0;
+        min-width: 0;
+        overflow: visible;
+        width: max-content;
+      }
     }

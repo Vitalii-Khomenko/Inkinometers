@@ -221,6 +221,14 @@ class BoxSortingFeatureTests(unittest.TestCase):
         self.assertIn("function exportBoxLabels()", self.html)
         self.assertIn("BOX_LABELS_SUFFIX = 'box_labels'", self.html)
 
+    def test_wide_box_preview_and_print_layout_are_supported(self):
+        self.assertIn(".box-preview-block", self.html)
+        self.assertIn("display: inline-block", self.html)
+        self.assertIn("min-width: 100%", self.html)
+        self.assertIn("@media print", self.html)
+        self.assertIn("size: A4 landscape", self.html)
+        self.assertIn("width: max-content", self.html)
+
     def test_operator_notes_are_in_exported_logs(self):
         self.assertIn('id="operatorNotes"', self.html)
         self.assertIn("function buildSessionLogText()", self.html)
@@ -314,6 +322,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("rows increase from left to right", readme)
         self.assertIn("two boxes on each line", readme)
         self.assertIn("Print layout: 2 boxes per line", readme)
+        self.assertIn("A4 landscape", readme)
         self.assertIn("Source file: sensor_numbers_20260520_073634.txt", readme)
         self.assertIn("Exported at:", readme)
         self.assertIn("_box_layout.txt", readme)
