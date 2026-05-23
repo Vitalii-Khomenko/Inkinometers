@@ -131,10 +131,13 @@ class BoxSortingFeatureTests(unittest.TestCase):
         self.assertIn('id="boxSearchForm"', self.html)
         self.assertIn('id="exportBoxLayout"', self.html)
 
-    def test_box_sorting_uses_expected_capacity(self):
-        self.assertIn("const BOX_SIZE = 24;", self.html)
-        self.assertIn("const BOX_ROW_SIZE = 8;", self.html)
-        self.assertIn("const BOX_ROW_COUNT = 3;", self.html)
+    def test_box_sorting_uses_configurable_capacity(self):
+        self.assertIn('id="boxRowCount"', self.html)
+        self.assertIn('id="boxRowSize"', self.html)
+        self.assertIn("const DEFAULT_BOX_ROW_SIZE = 8;", self.html)
+        self.assertIn("const DEFAULT_BOX_ROW_COUNT = 3;", self.html)
+        self.assertIn("function getBoxCapacity(layout = boxLayoutSettings)", self.html)
+        self.assertIn("function updateBoxLayoutSettings()", self.html)
 
     def test_box_sorting_parses_sorts_and_deduplicates_numbers(self):
         self.assertIn("function parseBoxSensorNumbers(text)", self.html)
@@ -145,12 +148,12 @@ class BoxSortingFeatureTests(unittest.TestCase):
         self.assertIn("invalidCount", self.html)
 
     def test_box_position_and_export_are_supported(self):
-        self.assertIn("function getBoxPositionByIndex(index)", self.html)
+        self.assertIn("function getBoxPositionByIndex(index, layout = boxLayoutSettings)", self.html)
         self.assertIn("function findBoxPlacement(sensorNumber)", self.html)
-        self.assertIn("function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [])", self.html)
+        self.assertIn("function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [], layout = boxLayoutSettings)", self.html)
         self.assertIn("Source file: ${sourceName}", self.html)
         self.assertIn("Exported at: ${exportTimestamp}", self.html)
-        self.assertIn("Box capacity: ${BOX_SIZE} sensors", self.html)
+        self.assertIn("Box capacity: ${boxCapacity} sensors", self.html)
         self.assertIn("function getBoxLayoutFileName(sourceFileName)", self.html)
         self.assertIn("BOX_LAYOUT_SUFFIX = 'box_layout'", self.html)
         self.assertIn("link.download = getBoxLayoutFileName(boxSourceFileName)", self.html)
@@ -238,6 +241,8 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Box Sorting", readme)
         self.assertIn("24 sensors", readme)
         self.assertIn("3 rows x 8", readme)
+        self.assertIn("16 sensors", readme)
+        self.assertIn("12 sensors", readme)
         self.assertIn("Source file: sensor_numbers_20260520_073634.txt", readme)
         self.assertIn("Exported at:", readme)
         self.assertIn("_box_layout.txt", readme)

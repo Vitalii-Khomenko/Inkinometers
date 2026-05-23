@@ -32,6 +32,7 @@ All UI text, browser messages, documentation, code comments, script output, comm
 - Append directly to a selected log file in browsers that support the File System Access API.
 - Generate random test sensor numbers with the included Python script.
 - Sort chaotic sensor number lists into physical boxes.
+- Choose the box layout by selecting rows per box and sensors per row.
 - Search a sorted sensor list to find the required box, row, and position.
 - Export a formatted box layout using the imported file name plus `_box_layout.txt`.
 - Export printable box labels using the imported file name plus `_box_labels.txt`.
@@ -132,12 +133,14 @@ Use the **Box Sorting** tab when you have a chaotic TXT file with loose sensor n
 Workflow:
 
 1. Load a `.txt` file containing 5- or 6-digit sensor numbers.
-2. The app sorts all valid unique sensor numbers in ascending order.
-3. The sorted list is split into boxes of 24 sensors.
-4. Each box is arranged as 3 rows x 8 positions.
-5. Enter a sensor number to see its box, row, and position.
-6. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
-7. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
+2. Choose the box layout with the **Rows in each box** and **Sensors per row** dropdowns.
+3. The app sorts all valid unique sensor numbers in ascending order.
+4. The sorted list is split into boxes using the selected capacity.
+5. The default layout is 24 sensors per box, arranged as 3 rows x 8 positions.
+6. Smaller boxes are supported, for example 2 rows x 8 positions for 16 sensors or 2 rows x 6 positions for 12 sensors.
+7. Enter a sensor number to see its box, row, and position.
+8. Export the formatted layout. The export filename uses the imported file name plus `_box_layout.txt`.
+9. Export printable labels. The label filename uses the imported file name plus `_box_labels.txt`.
 
 Example placement:
 

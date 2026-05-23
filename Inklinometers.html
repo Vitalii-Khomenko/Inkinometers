@@ -102,7 +102,7 @@
       font-weight: 500;
       color: var(--primary);
     }
-    input[type="number"], input[type="text"], input[type="file"], textarea {
+    input[type="number"], input[type="text"], input[type="file"], select, textarea {
       font-size: 1em;
       padding: 0.5em 0.7em;
       border: 1.2px solid var(--accent);
@@ -121,8 +121,23 @@
       font-family: inherit;
     }
     input[type="number"]:focus,
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    select:focus {
       border: 1.5px solid var(--success);
+    }
+    .box-layout-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7em;
+      margin-bottom: 0.8em;
+    }
+    .box-layout-field {
+      display: flex;
+      flex-direction: column;
+    }
+    .box-layout-field select {
+      min-height: 2.8em;
+      margin-bottom: 0;
     }
     input[type="file"] {
       border: none;
@@ -512,6 +527,36 @@
         <h3 style="margin-top:0;">Box Sorting</h3>
         <label for="boxFileInput">Load chaotic sensor number list (txt):</label>
         <input type="file" id="boxFileInput" accept=".txt">
+        <div class="box-layout-controls">
+          <div class="box-layout-field">
+            <label for="boxRowCount">Rows in each box:</label>
+            <select id="boxRowCount">
+              <option value="1">1 row</option>
+              <option value="2">2 rows</option>
+              <option value="3" selected>3 rows</option>
+              <option value="4">4 rows</option>
+              <option value="5">5 rows</option>
+              <option value="6">6 rows</option>
+            </select>
+          </div>
+          <div class="box-layout-field">
+            <label for="boxRowSize">Sensors per row:</label>
+            <select id="boxRowSize">
+              <option value="1">1 sensor</option>
+              <option value="2">2 sensors</option>
+              <option value="3">3 sensors</option>
+              <option value="4">4 sensors</option>
+              <option value="5">5 sensors</option>
+              <option value="6">6 sensors</option>
+              <option value="7">7 sensors</option>
+              <option value="8" selected>8 sensors</option>
+              <option value="9">9 sensors</option>
+              <option value="10">10 sensors</option>
+              <option value="11">11 sensors</option>
+              <option value="12">12 sensors</option>
+            </select>
+          </div>
+        </div>
         <form id="boxSearchForm" autocomplete="off">
           <label for="boxSensorId">Enter sensor number:</label>
           <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
@@ -597,22 +642,24 @@
     let boxSensorNumbers = [];
     let boxSourceFileName = '';
     let boxDuplicateNumbers = [];
+    let boxImportStats = { invalidCount: 0, duplicateCount: 0 };
+    let boxLayoutSettings = { rowCount: 3, rowSize: 8 };
     let currentBoxExportUrl = null;
     let currentBoxLabelsUrl = null;
     let currentManualExportUrl = null;
 
-    // Storage keys and box layout constants. These values define the exported file format.
+    // Storage keys and default box layout values. The active layout can be changed in the Box Sorting tab.
     const TRACK_COLORS_STORAGE_KEY = 'trackColors';
     const OUTDOOR_MODE_STORAGE_KEY = 'outdoorMode';
     const VIEW_MODE_STORAGE_KEY = 'viewMode';
     const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
     const SENSOR_NUMBER_PATTERN = /^[0-9]{5,6}$/;
-    const BOX_SIZE = 24;
-    const BOX_ROW_SIZE = 8;
-    const BOX_ROW_COUNT = 3;
+    const DEFAULT_BOX_ROW_SIZE = 8;
+    const DEFAULT_BOX_ROW_COUNT = 3;
     const BOX_LAYOUT_SUFFIX = 'box_layout';
     const BOX_LABELS_SUFFIX = 'box_labels';
     const VIEW_MODES = ['auto', 'wide', 'compact'];
+    boxLayoutSettings = { rowCount: DEFAULT_BOX_ROW_COUNT, rowSize: DEFAULT_BOX_ROW_SIZE };
     const defaultTracks = [
       { name: 'U1', color: '#2a65ea' },
       { name: 'U2', color: '#1ec47c' },
@@ -983,12 +1030,21 @@
       return { numbers, duplicateNumbers, invalidCount, duplicateCount };
     }
 
-    function getBoxPositionByIndex(index) {
+    function getBoxCapacity(layout = boxLayoutSettings) {
+      return layout.rowCount * layout.rowSize;
+    }
+
+    function getBoxLayoutDescription(layout = boxLayoutSettings) {
+      return `${layout.rowCount} rows x ${layout.rowSize}`;
+    }
+
+    function getBoxPositionByIndex(index, layout = boxLayoutSettings) {
       // Convert the sorted list index into the physical box, row, and row position.
+      const boxCapacity = getBoxCapacity(layout);
       return {
-        box: Math.floor(index / BOX_SIZE) + 1,
-        row: Math.floor((index % BOX_SIZE) / BOX_ROW_SIZE) + 1,
-        position: (index % BOX_ROW_SIZE) + 1
+        box: Math.floor(index / boxCapacity) + 1,
+        row: Math.floor((index % boxCapacity) / layout.rowSize) + 1,
+        position: (index % layout.rowSize) + 1
       };
     }
 
@@ -1057,32 +1113,37 @@
       return `manual_sensors_${formatDateStamp(exportedAt)}.txt`;
     }
 
-    function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = []) {
+    function formatBoxLayout(numbers, sourceFileName = '', exportedAt = new Date(), duplicateNumbers = [], layout = boxLayoutSettings) {
       // Human-readable export for placing sensors into boxes and rows.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
+      const boxCapacity = getBoxCapacity(layout);
+      const positionHeader = Array.from(
+        { length: layout.rowSize },
+        (_, positionIndex) => String(positionIndex + 1).padStart(6, ' ')
+      ).join(' ');
       const lines = [
         'Sensor Box Layout',
         `Source file: ${sourceName}`,
         `Exported at: ${exportTimestamp}`,
         `Total sensors: ${numbers.length}`,
         `Duplicate sensors ignored: ${duplicateNumbers.length ? duplicateNumbers.join(', ') : 'None'}`,
-        `Box capacity: ${BOX_SIZE} sensors (${BOX_ROW_COUNT} rows x ${BOX_ROW_SIZE})`,
+        `Box capacity: ${boxCapacity} sensors (${getBoxLayoutDescription(layout)})`,
         ''
       ];
 
-      const boxCount = Math.ceil(numbers.length / BOX_SIZE);
+      const boxCount = Math.ceil(numbers.length / boxCapacity);
       for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
         lines.push(`Box ${boxIndex + 1}`);
-        lines.push('Position:     1      2      3      4      5      6      7      8');
+        lines.push(`Position:${positionHeader}`);
 
-        for (let rowIndex = 0; rowIndex < BOX_ROW_COUNT; rowIndex += 1) {
-          const rowStart = (boxIndex * BOX_SIZE) + (rowIndex * BOX_ROW_SIZE);
+        for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
+          const rowStart = (boxIndex * boxCapacity) + (rowIndex * layout.rowSize);
           const rowNumbers = numbers
-            .slice(rowStart, rowStart + BOX_ROW_SIZE)
+            .slice(rowStart, rowStart + layout.rowSize)
             .map(number => number.padStart(6, ' '));
 
-          while (rowNumbers.length < BOX_ROW_SIZE) {
+          while (rowNumbers.length < layout.rowSize) {
             rowNumbers.push('------');
           }
 
@@ -1137,10 +1198,11 @@
       return lines.join('\n');
     }
 
-    function formatBoxLabels(numbers, sourceFileName = '', exportedAt = new Date()) {
+    function formatBoxLabels(numbers, sourceFileName = '', exportedAt = new Date(), layout = boxLayoutSettings) {
       // Compact printable labels for physical boxes.
       const exportTimestamp = exportedAt.toISOString();
       const sourceName = sourceFileName || 'Unknown source file';
+      const boxCapacity = getBoxCapacity(layout);
       const lines = [
         'Printable Box Labels',
         `Source file: ${sourceName}`,
@@ -1148,17 +1210,17 @@
         ''
       ];
 
-      const boxCount = Math.ceil(numbers.length / BOX_SIZE);
+      const boxCount = Math.ceil(numbers.length / boxCapacity);
       for (let boxIndex = 0; boxIndex < boxCount; boxIndex += 1) {
-        const boxNumbers = numbers.slice(boxIndex * BOX_SIZE, (boxIndex + 1) * BOX_SIZE);
+        const boxNumbers = numbers.slice(boxIndex * boxCapacity, (boxIndex + 1) * boxCapacity);
         const firstSensor = boxNumbers[0] || '------';
         const lastSensor = boxNumbers[boxNumbers.length - 1] || '------';
 
         lines.push('================================');
         lines.push(`BOX ${boxIndex + 1}`);
         lines.push(`Sensors: ${firstSensor} - ${lastSensor}`);
-        lines.push(`Count: ${boxNumbers.length} / ${BOX_SIZE}`);
-        lines.push(`Rows: ${BOX_ROW_COUNT} x ${BOX_ROW_SIZE}`);
+        lines.push(`Count: ${boxNumbers.length} / ${boxCapacity}`);
+        lines.push(`Rows: ${getBoxLayoutDescription(layout)}`);
         lines.push('================================');
         lines.push('');
       }
@@ -1191,6 +1253,26 @@
       document.getElementById('boxSortStatus').textContent = message;
     }
 
+    function renderBoxSortStatus() {
+      if (!boxSensorNumbers.length) {
+        setBoxSortStatus('');
+        return;
+      }
+
+      const boxCapacity = getBoxCapacity();
+      const boxCount = Math.ceil(boxSensorNumbers.length / boxCapacity);
+      const duplicateList = boxDuplicateNumbers.length
+        ? ` Duplicates: ${boxDuplicateNumbers.join(', ')}.`
+        : '';
+
+      setBoxSortStatus(
+        `Loaded ${boxSensorNumbers.length} unique sensors into ${boxCount} box(es). ` +
+        `Layout: ${getBoxLayoutDescription()} (${boxCapacity} sensors per box). ` +
+        `Ignored ${boxImportStats.invalidCount} invalid value(s) and ${boxImportStats.duplicateCount} duplicate value(s).` +
+        duplicateList
+      );
+    }
+
     function updateBoxExportButton() {
       document.getElementById('exportBoxLayout').disabled = boxSensorNumbers.length === 0;
       document.getElementById('exportBoxLabels').disabled = boxSensorNumbers.length === 0;
@@ -1200,19 +1282,42 @@
       // Replace the active box plan with sanitized unique sensor numbers.
       boxSensorNumbers = parsed.numbers;
       boxDuplicateNumbers = parsed.duplicateNumbers;
+      boxImportStats = {
+        invalidCount: parsed.invalidCount,
+        duplicateCount: parsed.duplicateCount
+      };
       updateBoxExportButton();
       renderBoxPreview();
       document.getElementById('boxSearchResult').replaceChildren();
+      renderBoxSortStatus();
+    }
 
-      const boxCount = Math.ceil(boxSensorNumbers.length / BOX_SIZE);
-      const duplicateList = parsed.duplicateNumbers.length
-        ? ` Duplicates: ${parsed.duplicateNumbers.join(', ')}.`
-        : '';
-      setBoxSortStatus(
-        `Loaded ${boxSensorNumbers.length} unique sensors into ${boxCount} box(es). ` +
-        `Ignored ${parsed.invalidCount} invalid value(s) and ${parsed.duplicateCount} duplicate value(s).` +
-        duplicateList
+    function refreshBoxSearchResult() {
+      const input = document.getElementById('boxSensorId').value.trim();
+      if (!boxSensorNumbers.length || !SENSOR_NUMBER_PATTERN.test(input)) return;
+
+      const placement = findBoxPlacement(input);
+      if (!placement) {
+        setBoxSearchMessage(`Sensor number ${input} is not in the loaded box list.`);
+        return;
+      }
+
+      setBoxSearchMessage(
+        `Sensor ${placement.sensorId}: Box ${placement.box}, Row ${placement.row}, Position ${placement.position}.`,
+        false
       );
+    }
+
+    function updateBoxLayoutSettings() {
+      const rowCount = Number(document.getElementById('boxRowCount').value);
+      const rowSize = Number(document.getElementById('boxRowSize').value);
+      if (!Number.isInteger(rowCount) || rowCount < 1) return;
+      if (!Number.isInteger(rowSize) || rowSize < 1) return;
+
+      boxLayoutSettings = { rowCount, rowSize };
+      renderBoxPreview();
+      renderBoxSortStatus();
+      refreshBoxSearchResult();
     }
 
     function exportBoxLayout() {
@@ -1406,6 +1511,7 @@
         window._logFileHandle = null;
         boxSourceFileName = '';
         boxDuplicateNumbers = [];
+        boxImportStats = { invalidCount: 0, duplicateCount: 0 };
         if (currentLogDownloadUrl) {
           URL.revokeObjectURL(currentLogDownloadUrl);
           currentLogDownloadUrl = null;
@@ -1582,6 +1688,8 @@
     document.getElementById('removeLastManualSensor').addEventListener('click', removeLastManualSensor);
     document.getElementById('clearManualSensorList').addEventListener('click', clearManualSensorList);
     document.getElementById('exportManualSensorList').addEventListener('click', exportManualSensorList);
+    document.getElementById('boxRowCount').addEventListener('change', updateBoxLayoutSettings);
+    document.getElementById('boxRowSize').addEventListener('change', updateBoxLayoutSettings);
 
     document.getElementById('operatorNotes').addEventListener('input', function() {
       if (logLines.length) updateLogDownload();
