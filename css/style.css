@@ -1,0 +1,477 @@
+    /* Design tokens shared by all tabs. */
+    :root {
+      --primary: #222831;
+      --accent: #00adb5;
+      --bg: #f7f7fa;
+      --error: #dc3545;
+      --success: #00a86b;
+      --radius: 10px;
+      --content-width: 370px;
+      --u1: #2a65ea;
+      --u2: #1ec47c;
+      --n1: #ad3ee6;
+      --n2: #ffd600;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--primary);
+      font-family: "Roboto", "Arial", sans-serif;
+      min-height: 100vh;
+      font-size: 16px;
+    }
+    /* High-contrast field mode for outdoor phone use. */
+    body.outdoor-mode {
+      --primary: #ffffff;
+      --accent: #ffea00;
+      --bg: #000000;
+      --error: #ff5252;
+      --success: #00ff7f;
+    }
+    body.outdoor-mode .card,
+    body.outdoor-mode .tab-btn.active {
+      background: #111111;
+      border: 1px solid #ffffff;
+      box-shadow: none;
+    }
+    body.outdoor-mode button {
+      color: #000000;
+      box-shadow: none;
+    }
+    body.outdoor-mode .danger {
+      color: #ffffff !important;
+    }
+    body.outdoor-mode input,
+    body.outdoor-mode select,
+    body.outdoor-mode textarea,
+    body.outdoor-mode .box-preview-block {
+      background: #000000;
+      color: #ffffff;
+      border-color: #ffea00;
+    }
+    body.outdoor-mode #status,
+    body.outdoor-mode #logFileStatus,
+    body.outdoor-mode #boxSortStatus,
+    body.outdoor-mode #boxSearchResult,
+    body.outdoor-mode #boxPreview,
+    body.outdoor-mode #manualEntryStatus {
+      color: #ffffff;
+    }
+    /* Shared mobile-first layout. */
+    main {
+      width: 100vw;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      padding: 1.2em 0.7em 2em;
+    }
+    h2 {
+      font-size: 1.3em;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.8em;
+      color: var(--primary);
+    }
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(34,40,49,0.07);
+      padding: 0.8em 0.7em 1.2em 0.7em;
+      width: 100%;
+      max-width: var(--content-width);
+      margin-bottom: 1.2em;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      box-sizing: border-box;
+    }
+    label {
+      font-size: 0.98em;
+      margin-bottom: .3em;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    input[type="number"], input[type="text"], input[type="file"], select, textarea {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      outline: none;
+      background: #f7f7fa;
+      margin-bottom: 1em;
+      transition: border .2s;
+      width: 100%;
+      box-sizing: border-box;
+      color: var(--primary);
+    }
+    textarea {
+      min-height: 5em;
+      resize: vertical;
+      font-family: inherit;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      border: 1.5px solid var(--success);
+    }
+    .box-layout-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7em;
+      margin-bottom: 0.8em;
+    }
+    .box-layout-field {
+      display: flex;
+      flex-direction: column;
+    }
+    .box-layout-field select {
+      min-height: 2.8em;
+      margin-bottom: 0;
+    }
+    input[type="file"] {
+      border: none;
+      margin-bottom: 1em;
+      padding: 0.5em 0.7em;
+      font-size: 1em;
+      background: #f7f7fa;
+      color: var(--primary);
+      border-radius: var(--radius);
+      box-sizing: border-box;
+      width: 100%;
+      cursor: pointer;
+      transition: background .17s;
+      border: 1.2px solid var(--accent);
+      outline: none;
+    }
+    input[type="file"]:hover {
+      background: #e6f9fa;
+    }
+    input[type="file"]::-webkit-file-upload-button,
+    input[type="file"]::-ms-browse,
+    input[type="file"]::file-selector-button {
+      font-size: 1em;
+      padding: .6em 1em;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+    }
+    input[type="file"]:focus::-webkit-file-upload-button,
+    input[type="file"]:focus::-ms-browse,
+    input[type="file"]:focus::file-selector-button {
+      background: #019fa6;
+    }
+    button {
+      font-size: 1em;
+      padding: .7em 0;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      margin-top: 0.2em;
+      margin-bottom: 0.5em;
+      width: 100%;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+    }
+    .top-actions {
+      display: flex;
+      gap: 0.5em;
+      width: 100%;
+      max-width: var(--content-width);
+      margin-bottom: 0.6em;
+    }
+    .top-actions button {
+      flex: 1;
+    }
+    button:active {
+      background: #019fa6;
+    }
+    .danger {
+      background: var(--error) !important;
+      color: #fff !important;
+      border: none;
+      transition: background .18s;
+    }
+    .danger:hover {
+      background: #a71d2a !important;
+    }
+    #result {
+      font-size: 1em;
+      margin-top: 1em;
+      text-align: center;
+      min-height: 2em;
+      word-break: break-all;
+    }
+    #notfound {
+      color: var(--error);
+      font-weight: 600;
+    }
+    .found {
+      font-weight: 600;
+      padding: 0.35em 0.7em;
+      border-radius: var(--radius);
+      display: inline-block;
+      margin: 0.3em 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      font-size: 1em;
+      letter-spacing: 0.01em;
+      transition: background .2s, color .2s;
+    }
+    #status {
+      margin-top: 0.3em;
+      margin-bottom: 0.3em;
+      text-align: center;
+      font-size: 0.97em;
+      color: #555;
+    }
+    #logDownload {
+      margin-top: 1.2em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #logDownload a {
+      color: var(--accent);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+    #checkedSensors {
+      margin-top: 0.7em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #boxSortStatus,
+    #boxSearchResult,
+    #boxPreview,
+    #manualEntryStatus {
+      margin-top: 0.7em;
+      text-align: center;
+      font-size: 0.97em;
+    }
+    #boxPreview {
+      text-align: left;
+      overflow-x: auto;
+    }
+    .box-preview-block {
+      /* Preserve exported TXT spacing in the on-screen preview. */
+      background: #f7f7fa;
+      border: 1px solid #d8eef0;
+      border-radius: 6px;
+      margin: 0.7em 0;
+      padding: 0.6em;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.9em;
+      white-space: pre;
+    }
+    #logFileStatus {
+      margin-top: 0.2em;
+      margin-bottom: 0.8em;
+      min-height: 1.2em;
+      text-align: center;
+      font-size: 0.9em;
+      color: #555;
+    }
+    .tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.2em !important;
+      margin-bottom: 0.7em !important;
+      width: 100%;
+      max-width: var(--content-width);
+    }
+    .tab-btn {
+      background: #e6f9fa;
+      color: var(--primary);
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius) var(--radius) 0 0;
+      font-size: 1em;
+      font-weight: 500;
+      box-shadow: none;
+      margin: 0;
+      padding: 0.5em 0;
+      transition: background .18s, color .18s;
+      min-width: 8em;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--accent);
+      border-bottom: 2px solid #fff;
+      font-weight: 700;
+    }
+    #tabContentTracks .card {
+      margin-bottom: 0;
+      padding: 1em 0.7em 1.2em 0.7em;
+      max-width: var(--content-width);
+      width: 100%;
+    }
+    #trackForm {
+      display: flex;
+      gap: 0.5em;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 0.7em;
+    }
+    #trackName {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      outline: none;
+      background: #f7f7fa;
+      min-width: 5em;
+      flex: 1;
+      color: var(--primary);
+      box-sizing: border-box;
+      transition: border .2s;
+    }
+    #trackName:focus {
+      border: 1.5px solid var(--success);
+    }
+    #trackColor {
+      font-size: 1em;
+      padding: 0.5em 0.7em;
+      border: 1.2px solid var(--accent);
+      border-radius: var(--radius);
+      background: #f7f7fa;
+      color: var(--primary);
+      min-width: 6em;
+      box-sizing: border-box;
+      transition: border .2s;
+    }
+    #trackColor:focus {
+      border: 1.5px solid var(--success);
+    }
+    #trackForm button[type="submit"] {
+      font-size: 1em;
+      padding: 0.5em 1em;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .17s;
+      box-shadow: 0 1px 6px rgba(0,173,181,0.10);
+      min-width: 5em;
+    }
+    #trackForm button[type="submit"]:active {
+      background: #019fa6;
+    }
+    .track-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-bottom: 0.5em;
+      font-size: 0.97em;
+      justify-content: space-between;
+    }
+    .track-row-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .track-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--error);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.2em 0.9em;
+      font-size: 0.97em;
+      cursor: pointer;
+      margin-left: 0.5em;
+      transition: background .18s;
+      min-width: 80px;
+      max-width: 80px;
+      width: 80px;
+      text-align: center;
+      align-self: flex-end;
+      margin-right: 15%;
+      box-sizing: border-box;
+      overflow: visible;
+      white-space: nowrap;
+    }
+    .track-remove:hover {
+      background: #a71d2a;
+    }
+    .track-remove:disabled {
+      background: #9aa0a6;
+      cursor: not-allowed;
+    }
+    .track-color {
+      display: inline-block;
+      width: 1.3em;
+      height: 1.3em;
+      border-radius: 50%;
+      margin-right: 0.5em;
+      border: 2px solid #eee;
+      vertical-align: middle;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    body.view-wide {
+      --content-width: 860px;
+    }
+    body.view-compact {
+      --content-width: 370px;
+    }
+    @media (min-width: 760px) {
+      body:not(.view-compact) {
+        --content-width: 760px;
+      }
+      body.view-wide {
+        --content-width: 860px;
+      }
+      h2 {
+        font-size: 1.55em;
+      }
+      .card {
+        padding: 1.2em 1.4em 1.5em;
+      }
+      .tab-btn {
+        padding: 0.65em 0;
+      }
+      #result,
+      #boxSortStatus,
+      #boxSearchResult,
+      #boxPreview,
+      #manualEntryStatus,
+      #checkedSensors {
+        font-size: 1.02em;
+      }
+      .box-preview-block {
+        font-size: 0.98em;
+      }
+      #trackForm {
+        flex-wrap: nowrap;
+      }
+    }
+    @media (max-width: 500px) {
+      html, body { font-size: 14px; }
+      h2 { font-size: 1.08em; }
+      .card, #tabContentTracks .card { max-width: 99vw; padding: 0.5em 0.2em 0.7em 0.2em; }
+      .top-actions { flex-direction: column; gap: 0.2em; }
+      #result { font-size: 0.97em; }
+      #status { font-size: 0.93em; }
+      #logDownload { font-size: 0.9em; }
+      .found { font-size: 0.97em; }
+      #checkedSensors { font-size: 0.93em; }
+      #boxSortStatus, #boxSearchResult, #boxPreview, #manualEntryStatus { font-size: 0.93em; }
+      .track-row { font-size: 0.93em; }
+      #trackForm button[type="submit"] { min-width: 3.5em; }
+      #trackColor, #trackName { min-width: 3.5em; }
+      .track-color { width: 1.1em; height: 1.1em; }
+    }

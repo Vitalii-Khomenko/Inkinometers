@@ -1,12 +1,17 @@
 import importlib.util
 import random
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_HTML = ROOT / "Inklinometers.html"
+INDEX_HTML = ROOT / "index.html"
+CSS_FILE = ROOT / "css" / "style.css"
+JS_FILE = ROOT / "js" / "app.js"
+BUILD_SCRIPT = ROOT / "scripts" / "build_singlefile.py"
 README = ROOT / "README.md"
 AUDIT = ROOT / "AUDIT.md"
 AGENTS = ROOT / "AGENTS.md"
@@ -24,6 +29,17 @@ def load_generator_module():
     spec = importlib.util.spec_from_file_location("generate_sensor_numbers", GENERATOR)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load generator module from {GENERATOR}")
+
+    loader = spec.loader
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def load_build_module():
+    spec = importlib.util.spec_from_file_location("build_singlefile", BUILD_SCRIPT)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load build module from {BUILD_SCRIPT}")
 
     loader = spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -118,6 +134,43 @@ class AppAuditRegressionTests(unittest.TestCase):
         self.assertIn("function findSensor(sensorNumber)", self.html)
         self.assertIn("status: 'ambiguous'", self.html)
         self.assertIn("renderAmbiguousSensorResult", self.html)
+
+
+class SplitSourceBuildTests(unittest.TestCase):
+    def test_split_source_files_exist(self):
+        self.assertTrue(INDEX_HTML.exists())
+        self.assertTrue(CSS_FILE.exists())
+        self.assertTrue(JS_FILE.exists())
+        self.assertTrue(BUILD_SCRIPT.exists())
+
+    def test_index_uses_external_source_files(self):
+        index = read_text(INDEX_HTML)
+
+        self.assertIn('<link rel="stylesheet" href="css/style.css">', index)
+        self.assertIn('<script src="js/app.js"></script>', index)
+        self.assertNotIn("<style>", index)
+
+    def test_production_html_is_single_file(self):
+        html = read_text(APP_HTML)
+
+        self.assertIn("<style>", html)
+        self.assertIn("<script>", html)
+        self.assertNotIn('<link rel="stylesheet" href="css/style.css">', html)
+        self.assertNotIn('<script src="js/app.js"></script>', html)
+
+    def test_build_output_matches_production_html(self):
+        builder = load_build_module()
+
+        self.assertEqual(builder.build_singlefile(), read_text(APP_HTML))
+
+    def test_app_javascript_syntax_is_valid(self):
+        subprocess.run(
+            ["node", "--check", str(JS_FILE)],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
 
 class BoxSortingFeatureTests(unittest.TestCase):
@@ -224,6 +277,16 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Tests", readme)
         self.assertIn("python -m unittest discover -s tests", readme)
 
+    def test_readme_documents_split_source_build(self):
+        readme = read_text(README)
+
+        self.assertIn("Development Build", readme)
+        self.assertIn("index.html", readme)
+        self.assertIn("css/style.css", readme)
+        self.assertIn("js/app.js", readme)
+        self.assertIn("scripts/build_singlefile.py", readme)
+        self.assertIn("python scripts/build_singlefile.py", readme)
+
     def test_docs_preserve_single_file_mobile_constraint(self):
         readme = read_text(README)
         agents = read_text(AGENTS)
@@ -290,7 +353,21 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn('"color": "#2a65ea"', track_colors)
 
     def test_project_text_files_are_ascii_only(self):
-        for path in [APP_HTML, README, AUDIT, AGENTS, IMPROVEMENTS, GENERATOR, LICENSE, TRACK_COLORS, Path(__file__)]:
+        for path in [
+            APP_HTML,
+            INDEX_HTML,
+            CSS_FILE,
+            JS_FILE,
+            BUILD_SCRIPT,
+            README,
+            AUDIT,
+            AGENTS,
+            IMPROVEMENTS,
+            GENERATOR,
+            LICENSE,
+            TRACK_COLORS,
+            Path(__file__),
+        ]:
             with self.subTest(path=path.name):
                 path.read_text(encoding="ascii")
 

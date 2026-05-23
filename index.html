@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sensor Location Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Main app shell. The build script bundles this source into the offline phone HTML. -->
+  <main>
+    <h2>Sensor Location Finder</h2>
+    <div class="top-actions">
+      <button type="button" id="outdoorModeToggle">Outdoor mode</button>
+      <button type="button" id="viewModeToggle">View: Auto</button>
+    </div>
+    <div class="tab-nav">
+      <button type="button" id="tabSearch" class="tab-btn active" style="flex:1;">Sensor Search</button>
+      <button type="button" id="tabBoxes" class="tab-btn" style="flex:1;">Box Sorting</button>
+      <button type="button" id="tabManual" class="tab-btn" style="flex:1;">Manual List</button>
+      <button type="button" id="tabTracks" class="tab-btn" style="flex:1;">Track Colors</button>
+    </div>
+    <!-- Sensor search workflow: import the map, search IDs, and export/search logs. -->
+    <div id="tabContentSearch">
+      <div class="card">
+        <label for="fileInput">Load sensor mapping (txt, e.g. 151336 U2 1 MQ001 per line):</label>
+        <input type="file" id="fileInput" accept=".txt">
+        <form id="sensorForm" autocomplete="off">
+          <label for="sensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="number" id="sensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Show location</button>
+        </form>
+        <div id="status"></div>
+        <div id="result"></div>
+        <div id="checkedSensors"></div>
+        <label for="operatorNotes">Operator notes for exported log:</label>
+        <textarea id="operatorNotes" placeholder="Optional notes for exported session log"></textarea>
+        <button type="button" id="chooseLogFile">Choose log file</button>
+        <div id="logFileStatus"></div>
+      </div>
+      <div id="logDownload"></div>
+    </div>
+    <!-- Box sorting workflow: import chaotic IDs, deduplicate, sort, and export layouts. -->
+    <div id="tabContentBoxes" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Box Sorting</h3>
+        <label for="boxFileInput">Load chaotic sensor number list (txt):</label>
+        <input type="file" id="boxFileInput" accept=".txt">
+        <div class="box-layout-controls">
+          <div class="box-layout-field">
+            <label for="boxRowCount">Rows in each box:</label>
+            <select id="boxRowCount">
+              <option value="1">1 row</option>
+              <option value="2">2 rows</option>
+              <option value="3" selected>3 rows</option>
+              <option value="4">4 rows</option>
+              <option value="5">5 rows</option>
+              <option value="6">6 rows</option>
+            </select>
+          </div>
+          <div class="box-layout-field">
+            <label for="boxRowSize">Sensors per row:</label>
+            <select id="boxRowSize">
+              <option value="1">1 sensor</option>
+              <option value="2">2 sensors</option>
+              <option value="3">3 sensors</option>
+              <option value="4">4 sensors</option>
+              <option value="5">5 sensors</option>
+              <option value="6">6 sensors</option>
+              <option value="7">7 sensors</option>
+              <option value="8" selected>8 sensors</option>
+              <option value="9">9 sensors</option>
+              <option value="10">10 sensors</option>
+              <option value="11">11 sensors</option>
+              <option value="12">12 sensors</option>
+            </select>
+          </div>
+        </div>
+        <form id="boxSearchForm" autocomplete="off">
+          <label for="boxSensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="number" id="boxSensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearBoxSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Show box position</button>
+        </form>
+        <div id="boxSortStatus"></div>
+        <div id="boxSearchResult"></div>
+        <button type="button" id="exportBoxLayout" disabled>Export box layout</button>
+        <button type="button" id="exportBoxLabels" disabled>Export box labels</button>
+        <div id="boxPreview"></div>
+      </div>
+    </div>
+    <!-- Manual list workflow: type loose sensor IDs in the field and export a dated TXT file. -->
+    <div id="tabContentManual" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Manual Sensor List</h3>
+        <form id="manualEntryForm" autocomplete="off">
+          <label for="manualSensorId">Enter sensor number:</label>
+          <div style="display:flex; gap:0.3em; align-items:flex-end; height:2.8em;">
+            <input type="text" id="manualSensorId" inputmode="numeric" pattern="[0-9]*" required placeholder="e.g. 151336" style="flex-basis:70%; flex-grow:1; min-width:90px; font-size:1.15em; padding:0.7em 1em; height:100%; border-radius: var(--radius); border-right:0; margin-bottom:0; display:flex; align-items:center;">
+            <button type="button" id="clearManualSensorId" title="Clear field" style="flex-basis:30%; min-width:2.5em; font-size:1.15em; line-height:1; height:100%; display:flex; align-items:center; justify-content:center; border-radius: var(--radius); margin-left:-1px; margin-bottom:0;">X</button>
+          </div>
+          <button type="submit">Add sensor</button>
+        </form>
+        <label for="manualSensorList">Sensor numbers to export:</label>
+        <textarea id="manualSensorList" placeholder="Added sensor numbers appear here, one per line"></textarea>
+        <div id="manualEntryStatus"></div>
+        <button type="button" id="removeLastManualSensor" disabled>Remove last sensor</button>
+        <button type="button" id="clearManualSensorList" class="danger" disabled>Clear list</button>
+        <button type="button" id="exportManualSensorList" disabled>Export TXT list</button>
+      </div>
+    </div>
+    <!-- Track color workflow: configure, import, and export location color rules. -->
+    <div id="tabContentTracks" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Track Color Settings</h3>
+        <form id="trackForm" autocomplete="off">
+          <input type="text" id="trackName" placeholder="Track name (e.g. U1)" required>
+          <select id="trackColor">
+            <option value="#2a65ea">Blue</option>
+            <option value="#1ec47c">Green</option>
+            <option value="#ad3ee6">Purple</option>
+            <option value="#ffd600">Yellow</option>
+            <option value="#e53935">Red</option>
+            <option value="#ff9800">Orange</option>
+            <option value="#00bcd4">Cyan</option>
+            <option value="#607d8b">Gray</option>
+            <option value="#795548">Brown</option>
+            <option value="#8bc34a">Lime</option>
+            <option value="#f06292">Pink</option>
+            <option value="#6d4c41">Coffee</option>
+          </select>
+          <button type="submit">Add/Update</button>
+        </form>
+        <button type="button" id="exportTrackColors">Export track colors</button>
+        <label for="importTrackColors">Import track colors (json/txt):</label>
+        <input type="file" id="importTrackColors" accept=".json,.txt">
+        <div id="trackList"></div>
+        <div style="margin:1em 0; text-align:center;">
+          <button type="button" id="resetAppStorage" class="danger" style="margin:0.5em;">Reset all app data</button>
+          <button type="button" id="resetLogFileHandle" class="danger" style="margin:0.5em;">Reset log file selection</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="js/app.js"></script>
+</body>
+</html>
